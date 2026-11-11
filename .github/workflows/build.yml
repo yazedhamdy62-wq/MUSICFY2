@@ -1,1 +1,61 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # GitHub's web upload skips files that start with a dot, so make sure this one exists.
+      - name: Ensure .env.example exists
+        run: '[ -f .env.example ] || echo "# GEMINI_API_KEY=MY_GEMINI_API_KEY" > .env.example'
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.3.1
+
+      # The project expects a release keystore (alias "upload") that only exists on your PC.
+      # Here we generate a throwaway key so GitHub can sign a test APK.
+      - name: Create test signing key
+        run: >
+          keytool -genkeypair -v
+          -keystore "$GITHUB_WORKSPACE/ci-key.jks"
+          -alias upload -keyalg RSA -keysize 2048 -validity 10000
+          -storepass android -keypass android
+          -dname "CN=Musicfy, O=Musicfy, C=EG"
+
+      - name: Build release APK
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/ci-key.jks
+          STORE_PASSWORD: android
+          KEY_PASSWORD: android
+        run: gradle assembleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Musicfy-release-apk
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Publish APK as a release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          files: app/build/outputs/apk/release/app-release.apk
 
