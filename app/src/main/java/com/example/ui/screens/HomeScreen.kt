@@ -716,6 +716,9 @@ private fun SongRowItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (isSelected) ResonanceGreen.copy(alpha = 0.10f) else Color.Transparent)
             .combinedClickable(
                 onClick = {
                     if (isBatchMode) {
@@ -726,7 +729,7 @@ private fun SongRowItem(
                 },
                 onLongClick = onLongClick
             )
-            .padding(horizontal = 20.dp, vertical = 7.dp)
+            .padding(horizontal = 8.dp, vertical = 6.dp)
             .testTag("song_item_${song.id}"),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -778,6 +781,14 @@ private fun SongRowItem(
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Now-playing indicator (animated bars while playing, static when paused)
+        if (isSelected) {
+            PlayingEqualizerBars(
+                isPlaying = isPlaying,
+                modifier = Modifier.padding(end = 10.dp)
             )
         }
 
