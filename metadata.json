@@ -1,0 +1,7 @@
+{
+  "name": "Musicfy",
+  "description": "Modern music player with device audio scanning, background playback, dynamic playlists, and dark/light modes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

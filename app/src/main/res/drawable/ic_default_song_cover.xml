@@ -1,0 +1,36 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="256dp"
+    android:height="256dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Background card: Clean solid background matching user's image -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M0,0h512v512h-512z" />
+
+    <!-- Musical double note (beamed eighth notes) matching 116671446592725952.jpeg -->
+    <!-- Left notehead ellipse at x=142, y=410 -->
+    <!-- Right notehead ellipse at x=415, y=362 -->
+    <!-- Slanted top beam connecting the two vertical stems -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M 198,75
+                          L 456,26
+                          C 468,24 476,33 476,45
+                          L 476,362
+                          C 476,412 432,450 382,450
+                          C 332,450 296,412 296,362
+                          C 296,312 338,274 388,274
+                          C 408,274 427,281 442,292
+                          L 442,112
+                          L 198,162
+                          L 198,410
+                          C 198,460 154,498 104,498
+                          C 54,498 18,460 18,410
+                          C 18,360 60,322 110,322
+                          C 130,322 149,329 164,340
+                          L 164,88
+                          C 164,78 172,70 182,68
+                          Z" />
+</vector>
