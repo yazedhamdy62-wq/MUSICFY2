@@ -1,5 +1,7 @@
 package com.example.ui.dialogs
 
+import androidx.compose.ui.platform.LocalContext
+import com.example.data.shareSongFile
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -64,6 +66,7 @@ fun SongOptionsBottomSheet(
     onDeleteSong: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
     var showCoverDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -245,6 +248,22 @@ fun SongOptionsBottomSheet(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OptionCardItem(
+                        title = strings.shareSong,
+                        subtitle = "Audio",
+                        icon = Icons.Outlined.Share,
+                        iconTint = Color(0xFF60A5FA),
+                        textColor = textColor,
+                        subTextColor = subTextColor,
+                        cardBg = optionCardBg,
+                        borderColor = borderColor,
+                        onClick = {
+                            shareSongFile(context, song)
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OptionCardItem(
                         title = strings.deleteSong,
                         subtitle = "Device & App",
                         icon = Icons.Outlined.Delete,
@@ -254,7 +273,7 @@ fun SongOptionsBottomSheet(
                         cardBg = optionCardBg,
                         borderColor = borderColor,
                         onClick = { showDeleteDialog = true },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1f)
                     )
                 }
             } else {
@@ -273,6 +292,22 @@ fun SongOptionsBottomSheet(
                         cardBg = optionCardBg,
                         borderColor = borderColor,
                         onClick = { showEditDialog = true },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OptionCardItem(
+                        title = strings.shareSong,
+                        subtitle = "Audio",
+                        icon = Icons.Outlined.Share,
+                        iconTint = Color(0xFF60A5FA),
+                        textColor = textColor,
+                        subTextColor = subTextColor,
+                        cardBg = optionCardBg,
+                        borderColor = borderColor,
+                        onClick = {
+                            shareSongFile(context, song)
+                            onDismiss()
+                        },
                         modifier = Modifier.weight(1f)
                     )
 

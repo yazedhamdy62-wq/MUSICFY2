@@ -214,6 +214,18 @@ data class AppStrings(
             "Accueil" -> "Choisir"
             else -> "اختيار"
         }
+    val shareSong: String
+        get() = when (navHome) {
+            "Home" -> "Share"
+            "Accueil" -> "Partager"
+            else -> "مشاركة"
+        }
+    val onlineLyricsSearchHint: String
+        get() = when (navHome) {
+            "Home" -> "Song title or artist..."
+            "Accueil" -> "Titre ou artiste..."
+            else -> "اسم الأغنية أو الفنان..."
+        }
 }
 
 object LocalizationManager {

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.rememberCoverAccent
+import com.example.ui.components.coverGradientBrush
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -74,10 +76,24 @@ fun PlaylistDetailScreen(
 
     val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
 
+    // Spotify-style header gradient built from the playlist cover colors
+    val tintSong = remember(playlistSongs) { playlistSongs.firstOrNull() }
+    val tintModel = tintSong?.customImageUri?.takeIf { it.isNotBlank() }
+        ?: playlist.customImageUri?.takeIf { it.isNotBlank() }
+        ?: tintSong?.albumArtUri?.takeIf { it.isNotBlank() }
+    val coverAccent = rememberCoverAccent(
+        imageModel = tintModel,
+        fallback = if (tintModel != null) Color(0xFF2A3440)
+        else (tintSong?.gradientColors?.firstOrNull()
+            ?: playlist.gradientColors.firstOrNull()
+            ?: Color(0xFF334155))
+    )
+    val screenBrush = coverGradientBrush(coverAccent, MaterialTheme.colorScheme.background, isDark)
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(screenBrush)
             .statusBarsPadding()
     ) {
         // Header: Back Arrow, "MUSICFY", 3 dots

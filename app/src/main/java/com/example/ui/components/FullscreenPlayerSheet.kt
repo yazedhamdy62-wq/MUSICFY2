@@ -1,5 +1,11 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.style.TextDirection
+import com.example.data.shareSongFile
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
@@ -115,10 +121,25 @@ fun FullscreenPlayerSheet(
 
     val playerClickBlocker = remember { MutableInteractionSource() }
 
+    // Spotify-style background: gradient built from the cover colors (stronger in lyrics mode)
+    val coverModel = song.customImageUri?.takeIf { it.isNotBlank() }
+        ?: song.albumArtUri?.takeIf { it.isNotBlank() }
+    val coverAccent = rememberCoverAccent(
+        imageModel = coverModel,
+        fallback = if (coverModel != null) Color(0xFF2A3440)
+        else (song.gradientColors.firstOrNull() ?: Color(0xFF334155))
+    )
+    val lyricsStrength by animateFloatAsState(
+        targetValue = if (playerMode == PlayerViewMode.LYRICS) 1f else 0f,
+        animationSpec = tween(500),
+        label = "lyricsGradient"
+    )
+    val playerBackgroundBrush = coverGradientBrush(coverAccent, bgColor, isDark, lyricsStrength)
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(bgColor)
+            .background(playerBackgroundBrush)
             .clickable(
                 interactionSource = playerClickBlocker,
                 indication = null,
@@ -565,49 +586,15 @@ fun FullscreenPlayerSheet(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Bottom badges & actions: "Dolby Atmos Lossless", Share, Queue
+                // Bottom actions: Share (audio file), Queue
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Dolby Atmos Lossless badge
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (isDark) Color(0xFF192229) else Color(0xFFF1F5F9))
-                            .then(
-                                if (!isDark) Modifier.border(BorderStroke(1.dp, borderColor), RoundedCornerShape(16.dp))
-                                else Modifier
-                            )
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(ResonanceGreen)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Dolby Atmos Lossless",
-                            color = subTextColor,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(
-                            onClick = {
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_SUBJECT, song.title)
-                                    putExtra(Intent.EXTRA_TEXT, "Listen to ${song.title} by ${song.artist} on Musicfy!")
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Track"))
-                            },
+                            onClick = { shareSongFile(context, song) },
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
@@ -866,7 +853,7 @@ private fun LyricsScrollableListView(
     modifier: Modifier = Modifier
 ) {
     val activeColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val inactiveColor = if (isDark) Color(0xFF6B7280) else Color(0xFF94A3B8)
+    val inactiveColor = if (isDark) Color.White.copy(alpha = 0.42f) else Color(0xFF94A3B8)
 
     if (lyrics.isEmpty() && rawLyricsText.isNullOrBlank()) {
         Box(
@@ -914,10 +901,14 @@ private fun LyricsScrollableListView(
                 Text(
                     text = lineText,
                     color = activeColor,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 24.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 26.sp,
+                    textAlign = TextAlign.Start,
+                    style = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
                 )
             }
         }
@@ -932,45 +923,54 @@ private fun LyricLineItem(
     inactiveColor: Color,
     onClick: () -> Unit
 ) {
-    Row(
+    // 0f = inactive line, 1f = active line. Animated so lines glide between states.
+    val progress by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0f,
+        animationSpec = tween(380),
+        label = "lyricLine"
+    )
+    val isRtlText = remember(line.text) {
+        val first = line.text.firstOrNull { Character.isLetter(it) }
+        first != null && (
+            Character.getDirectionality(first) == Character.DIRECTIONALITY_RIGHT_TO_LEFT ||
+                Character.getDirectionality(first) == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC
+            )
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.Top
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        if (isActive) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(36.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(ResonanceGreen)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-        } else {
-            Spacer(modifier = Modifier.width(14.dp))
-        }
+        Text(
+            text = line.text,
+            color = lerp(inactiveColor, activeColor, progress),
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 32.sp,
+            textAlign = TextAlign.Start,
+            style = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    val scale = 0.78f + 0.22f * progress
+                    scaleX = scale
+                    scaleY = scale
+                    transformOrigin = TransformOrigin(if (isRtlText) 1f else 0f, 0.5f)
+                }
+        )
 
-        Column(modifier = Modifier.weight(1f)) {
+        if (isActive && line.sectionTag != null) {
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = line.text,
-                color = if (isActive) activeColor else inactiveColor,
-                fontSize = if (isActive) 20.sp else 16.sp,
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                lineHeight = if (isActive) 26.sp else 22.sp
+                text = line.sectionTag,
+                color = ResonanceGreen,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp
             )
-
-            if (isActive && line.sectionTag != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = line.sectionTag,
-                    color = ResonanceGreen,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp
-                )
-            }
         }
     }
 }

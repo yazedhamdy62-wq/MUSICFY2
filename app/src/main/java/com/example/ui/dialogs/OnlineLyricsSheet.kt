@@ -10,17 +10,26 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
@@ -37,19 +46,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.AppStrings
-import com.example.data.LrclibClient
+import com.example.data.LyricsQuery
+import com.example.data.LyricsSearch
 import com.example.data.OnlineLyricsResult
 import com.example.ui.theme.ResonanceGreen
 import kotlinx.coroutines.CancellationException
 
 /**
- * Bottom sheet that searches lyrics online (LRCLIB) for the current song and lets the user
- * pick one of the results. [onSelect] receives the lyrics text (LRC if synced, else plain).
+ * Bottom sheet that searches lyrics online (LRCLIB, KuGou, NetEase) for the current song and
+ * lets the user pick one of the results. The search text can be edited and searched again,
+ * which helps with songs whose tags are missing or written in another script.
+ * [onSelect] receives the lyrics text (LRC if synced, else plain).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,14 +79,18 @@ fun OnlineLyricsSheet(
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<OnlineLyricsResult>>(emptyList()) }
-    var selectedId by remember { mutableStateOf<Long?>(null) }
+    var selectedId by remember { mutableStateOf<String?>(null) }
     var reloadKey by remember { mutableStateOf(0) }
+    var activeQuery by remember { mutableStateOf<String?>(null) }
+    var queryText by remember(title, artist) {
+        mutableStateOf(LyricsQuery.keyword(title, artist))
+    }
 
-    LaunchedEffect(title, artist, reloadKey) {
+    LaunchedEffect(title, artist, reloadKey, activeQuery) {
         isLoading = true
         hasError = false
         try {
-            val found = LrclibClient.search(title, artist, durationSec)
+            val found = LyricsSearch.search(title, artist, durationSec, activeQuery)
             results = found
             selectedId = found.firstOrNull()?.id
         } catch (e: CancellationException) {
@@ -86,9 +103,15 @@ fun OnlineLyricsSheet(
         isLoading = false
     }
 
+    val submitSearch: () -> Unit = {
+        activeQuery = queryText.trim().takeIf { it.isNotEmpty() }
+        reloadKey += 1
+    }
+
     val sheetBg = if (isDark) Color(0xFF14191F) else Color.White
     val textColor = if (isDark) Color.White else Color(0xFF0F172A)
     val subColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val borderColor = if (isDark) Color(0xFF26333D) else Color(0xFFE2E8F0)
     val selectedResult = results.firstOrNull { it.id == selectedId }
 
     ModalBottomSheet(
@@ -101,6 +124,7 @@ fun OnlineLyricsSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                .imePadding()
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
             Text(
@@ -109,20 +133,46 @@ fun OnlineLyricsSheet(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "$title • $artist",
-                color = subColor,
-                fontSize = 13.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = queryText,
+                onValueChange = { queryText = it },
+                singleLine = true,
+                placeholder = {
+                    Text(
+                        text = strings.onlineLyricsSearchHint,
+                        color = subColor,
+                        fontSize = 13.sp
+                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = submitSearch) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = ResonanceGreen
+                        )
+                    }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
+                shape = RoundedCornerShape(14.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ResonanceGreen,
+                    unfocusedBorderColor = borderColor,
+                    focusedTextColor = textColor,
+                    unfocusedTextColor = textColor,
+                    cursorColor = ResonanceGreen
+                ),
+                modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 220.dp, max = 420.dp),
+                    .heightIn(min = 200.dp, max = 360.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (isLoading) {
@@ -248,7 +298,11 @@ private fun LyricsResultRow(
                 unselectedColor = subColor
             )
         )
-        Column(modifier = Modifier.weight(1f).padding(top = 10.dp, end = 6.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 10.dp, end = 6.dp)
+        ) {
             Text(
                 text = result.trackName,
                 color = textColor,
@@ -259,7 +313,7 @@ private fun LyricsResultRow(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "${result.artistName} • $durationText",
+                text = "${result.artistName} • $durationText • ${result.source}",
                 color = subColor,
                 fontSize = 12.sp,
                 maxLines = 1,

@@ -444,50 +444,6 @@ fun SettingsScreen(
                             )
                         )
                     }
-
-                    HorizontalDivider(color = dividerColor)
-
-                    // Crossfade Slider
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "التلاشي المتبادل (Crossfade)",
-                                color = textColor,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(ResonanceGreen.copy(alpha = 0.15f))
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "${settings.crossfadeSeconds} ثوانٍ",
-                                    color = ResonanceGreen,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Slider(
-                            value = settings.crossfadeSeconds.toFloat(),
-                            onValueChange = { onUpdateSettings(settings.copy(crossfadeSeconds = it.toInt())) },
-                            valueRange = 0f..12f,
-                            steps = 11,
-                            colors = SliderDefaults.colors(
-                                thumbColor = ResonanceGreen,
-                                activeTrackColor = ResonanceGreen,
-                                inactiveTrackColor = borderColor
-                            )
-                        )
-                    }
                 }
             }
 
