@@ -826,6 +826,8 @@ private fun SongArtworkView(
             gradientColors = song.gradientColors,
             customImageUri = song.customImageUri,
             albumArtUri = song.albumArtUri,
+            contentUri = song.contentUri,
+            highRes = true,
             modifier = Modifier
                 .fillMaxWidth(0.88f)
                 .aspectRatio(1f)

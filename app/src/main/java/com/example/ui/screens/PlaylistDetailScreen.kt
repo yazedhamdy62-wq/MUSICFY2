@@ -182,6 +182,8 @@ fun PlaylistDetailScreen(
                         PlaylistArtwork(
                             playlist = playlist,
                             firstSong = firstSong,
+                            highRes = true,
+                            highResSizePx = 512,
                             modifier = Modifier
                                 .size(110.dp)
                                 .shadow(12.dp, RoundedCornerShape(16.dp))

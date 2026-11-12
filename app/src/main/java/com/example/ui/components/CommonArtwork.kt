@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.net.Uri
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -46,7 +47,10 @@ fun SongCoverArtwork(
     cornerRadius: Dp = 12.dp,
     isPlaying: Boolean = false,
     customImageUri: String? = null,
-    albumArtUri: String? = null
+    albumArtUri: String? = null,
+    contentUri: String? = null,
+    highRes: Boolean = false,
+    highResSizePx: Int = 1024
 ) {
     val imageModel = remember(customImageUri, albumArtUri) {
         customImageUri?.takeIf { it.isNotBlank() } ?: albumArtUri?.takeIf { it.isNotBlank() }
@@ -70,7 +74,7 @@ fun SongCoverArtwork(
             val imageRequest = remember(imageModel, context) {
                 ImageRequest.Builder(context)
                     .data(imageModel)
-                    .size(128, 128)
+                    .size(192, 192)
                     .crossfade(false)
                     .allowHardware(true)
                     .precision(coil.size.Precision.INEXACT)
@@ -84,6 +88,34 @@ fun SongCoverArtwork(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
+
+            // Full-quality layer on top of the small thumbnail (which shows instantly)
+            if (highRes) {
+                val hiModel: Any = remember(imageModel, contentUri) {
+                    if (imageModel.contains("/audio/albumart/")) {
+                        HighResAlbumArt(Uri.parse(imageModel), contentUri)
+                    } else {
+                        imageModel
+                    }
+                }
+                val hiRequest = remember(hiModel, highResSizePx, context) {
+                    ImageRequest.Builder(context)
+                        .data(hiModel)
+                        .size(highResSizePx, highResSizePx)
+                        .crossfade(400)
+                        .allowHardware(true)
+                        .precision(coil.size.Precision.INEXACT)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .build()
+                }
+                AsyncImage(
+                    model = hiRequest,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         } else if (coverType == CoverArtType.DEFAULT_PLACEHOLDER || coverType == CoverArtType.CUSTOM_IMAGE) {
             Image(
                 painter = painterResource(id = R.drawable.ic_default_song_cover),
@@ -414,7 +446,9 @@ fun PlaylistArtwork(
     allSongs: List<com.example.data.Song> = emptyList(),
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 12.dp,
-    isPlaying: Boolean = false
+    isPlaying: Boolean = false,
+    highRes: Boolean = false,
+    highResSizePx: Int = 1024
 ) {
     val resolvedSong = firstSong ?: if (allSongs.isNotEmpty()) findPlaylistFirstSong(playlist, allSongs) else null
 
@@ -424,6 +458,9 @@ fun PlaylistArtwork(
             gradientColors = resolvedSong.gradientColors,
             customImageUri = resolvedSong.customImageUri ?: playlist.customImageUri,
             albumArtUri = resolvedSong.albumArtUri,
+            contentUri = resolvedSong.contentUri,
+            highRes = highRes,
+            highResSizePx = highResSizePx,
             modifier = modifier,
             cornerRadius = cornerRadius,
             isPlaying = isPlaying
@@ -433,6 +470,8 @@ fun PlaylistArtwork(
             coverType = playlist.coverType,
             gradientColors = playlist.gradientColors,
             customImageUri = playlist.customImageUri,
+            highRes = highRes,
+            highResSizePx = highResSizePx,
             modifier = modifier,
             cornerRadius = cornerRadius,
             isPlaying = isPlaying

@@ -1,5 +1,6 @@
 package com.example.audio
 
+import com.example.data.ArtworkLoader
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -98,11 +99,12 @@ class MusicPlaybackService : Service() {
         val artist = intent?.getStringExtra(EXTRA_SONG_ARTIST) ?: "مشغل الموسيقى"
         val isPlaying = intent?.getBooleanExtra(EXTRA_IS_PLAYING, true) ?: true
         val artUriStr = intent?.getStringExtra(EXTRA_ART_URI)
+        val trackUriStr = intent?.getStringExtra(EXTRA_CONTENT_URI)
         val durationMs = intent?.getLongExtra(EXTRA_DURATION_MS, 0L) ?: 0L
         val positionMs = intent?.getLongExtra(EXTRA_POSITION_MS, 0L) ?: 0L
         val isLiked = intent?.getBooleanExtra(EXTRA_IS_LIKED, false) ?: false
 
-        val albumArtBitmap = loadArtworkBitmap(artUriStr)
+        val albumArtBitmap = loadArtworkBitmap(artUriStr, trackUriStr)
 
         // Update MediaSession metadata (sets song duration for scrubber / timeline)
         val metadata = MediaMetadataCompat.Builder()
@@ -215,24 +217,19 @@ class MusicPlaybackService : Service() {
     }
 
     // PERF: remember the last decoded cover so we don't decode the same image on every update
-    private var cachedArtUri: String? = null
+    private var cachedArtKey: String? = null
     private var cachedArtBitmap: Bitmap? = null
 
-    private fun loadArtworkBitmap(artUriStr: String?): Bitmap? {
+    private fun loadArtworkBitmap(artUriStr: String?, trackUriStr: String?): Bitmap? {
         if (artUriStr.isNullOrBlank()) return null
-        if (artUriStr == cachedArtUri && cachedArtBitmap != null) return cachedArtBitmap
-        try {
-            contentResolver.openInputStream(Uri.parse(artUriStr))?.use { input ->
-                val options = BitmapFactory.Options().apply {
-                    inSampleSize = 4
-                }
-                val bmp = BitmapFactory.decodeStream(input, null, options)
-                cachedArtUri = artUriStr
-                cachedArtBitmap = bmp
-                return bmp
-            }
-        } catch (_: Exception) { }
-        return null
+        val key = "$artUriStr|$trackUriStr"
+        if (key == cachedArtKey && cachedArtBitmap != null) return cachedArtBitmap
+        val bmp = ArtworkLoader.loadBitmap(this, artUriStr, trackUriStr, 512)
+        if (bmp != null) {
+            cachedArtKey = key
+            cachedArtBitmap = bmp
+        }
+        return bmp
     }
 
     private fun createNotificationChannel() {
@@ -267,6 +264,7 @@ class MusicPlaybackService : Service() {
         const val EXTRA_SONG_ARTIST = "extra_song_artist"
         const val EXTRA_IS_PLAYING = "extra_is_playing"
         const val EXTRA_ART_URI = "extra_art_uri"
+        const val EXTRA_CONTENT_URI = "extra_content_uri"
         const val EXTRA_DURATION_MS = "extra_duration_ms"
         const val EXTRA_POSITION_MS = "extra_position_ms"
         const val EXTRA_IS_LIKED = "extra_is_liked"
@@ -285,6 +283,7 @@ class MusicPlaybackService : Service() {
             artist: String,
             isPlaying: Boolean,
             artUri: String? = null,
+            contentUri: String? = null,
             durationMs: Long = 0L,
             positionMs: Long = 0L,
             isLiked: Boolean = false
@@ -294,6 +293,7 @@ class MusicPlaybackService : Service() {
                 putExtra(EXTRA_SONG_ARTIST, artist)
                 putExtra(EXTRA_IS_PLAYING, isPlaying)
                 putExtra(EXTRA_ART_URI, artUri)
+                putExtra(EXTRA_CONTENT_URI, contentUri)
                 putExtra(EXTRA_DURATION_MS, durationMs)
                 putExtra(EXTRA_POSITION_MS, positionMs)
                 putExtra(EXTRA_IS_LIKED, isLiked)

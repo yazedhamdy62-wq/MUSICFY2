@@ -1,5 +1,6 @@
 package com.example.widget
 
+import com.example.data.ArtworkLoader
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -123,7 +124,8 @@ class MusicAppWidgetProvider : AppWidgetProvider() {
             val isLiked = song?.isLiked ?: savedState.isLiked
 
             val artUri = song?.customImageUri ?: song?.albumArtUri ?: savedState.artUri
-            val coverBitmap = loadArtworkBitmap(context, artUri)
+            val trackUri = song?.contentUri ?: savedState.contentUri
+            val coverBitmap = loadArtworkBitmap(context, artUri, trackUri)
 
             val formattedPos = formatTime(posSec)
             val formattedDur = formatTime(durSec)
@@ -287,26 +289,19 @@ class MusicAppWidgetProvider : AppWidgetProvider() {
         }
 
         // PERF: remember the last decoded cover so we don't decode it on every widget update
-        @Volatile private var cachedArtUri: String? = null
+        @Volatile private var cachedArtKey: String? = null
         @Volatile private var cachedArtBitmap: Bitmap? = null
 
-        private fun loadArtworkBitmap(context: Context, artUriStr: String?): Bitmap? {
+        private fun loadArtworkBitmap(context: Context, artUriStr: String?, trackUriStr: String?): Bitmap? {
             if (artUriStr.isNullOrBlank()) return null
-            if (artUriStr == cachedArtUri && cachedArtBitmap != null) return cachedArtBitmap
-            return try {
-                val uri = Uri.parse(artUriStr)
-                val opts = BitmapFactory.Options().apply {
-                    inSampleSize = 4
-                }
-                val bmp = context.contentResolver.openInputStream(uri)?.use { stream ->
-                    BitmapFactory.decodeStream(stream, null, opts)
-                }
-                cachedArtUri = artUriStr
+            val key = "$artUriStr|$trackUriStr"
+            if (key == cachedArtKey && cachedArtBitmap != null) return cachedArtBitmap
+            val bmp = ArtworkLoader.loadBitmap(context, artUriStr, trackUriStr, 400)
+            if (bmp != null) {
+                cachedArtKey = key
                 cachedArtBitmap = bmp
-                bmp
-            } catch (_: Exception) {
-                null
             }
+            return bmp
         }
     }
 }

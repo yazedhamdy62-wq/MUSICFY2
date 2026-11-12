@@ -91,6 +91,10 @@ class MainActivity : ComponentActivity() {
             }
             .allowHardware(true)
             .crossfade(false)
+            .components {
+                add(com.example.ui.components.HighResAlbumArtKeyer)
+                add(com.example.ui.components.HighResAlbumArtFetcher.Factory(applicationContext))
+            }
             .build()
         coil.Coil.setImageLoader(imageLoader)
 

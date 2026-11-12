@@ -275,6 +275,7 @@ class AudioPlayerController(private val context: Context) {
                 artist = song.artist,
                 isPlaying = _isPlaying.value,
                 artUri = art,
+                contentUri = song.contentUri,
                 durationMs = durMs,
                 positionMs = posMs,
                 isLiked = song.isLiked
