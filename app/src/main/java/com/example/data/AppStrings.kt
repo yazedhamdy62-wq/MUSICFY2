@@ -226,6 +226,338 @@ data class AppStrings(
             "Accueil" -> "Titre ou artiste..."
             else -> "اسم الأغنية أو الفنان..."
         }
+
+    private fun tr(ar: String, en: String, fr: String): String = when (navHome) {
+        "Home" -> en
+        "Accueil" -> fr
+        else -> ar
+    }
+
+    fun scanDone(n: Int): String =
+        tr("تم فحص الذاكرة: تم العثور على $n أغنية", "Scan complete: found $n songs", "Analyse terminée : $n titres trouvés")
+
+    fun newSongsFound(n: Int): String =
+        tr("تم العثور على $n أغانٍ جديدة تلقائياً", "Found $n new songs automatically", "$n nouveaux titres trouvés automatiquement")
+
+    val noAudioFound: String
+        get() = tr("لم يتم العثور على ملفات صوتية في مسارات الجهاز", "No audio files found on your device", "Aucun fichier audio trouvé sur l'appareil")
+
+    val deleteConfirmed: String
+        get() = tr("تم تأكيد حذف الملف من ذاكرة الجهاز بنجاح", "File deleted from your device", "Fichier supprimé de l'appareil")
+
+    val audioPermissionNeeded: String
+        get() = tr("يلزم إذن الوصول لملفات الصوت لقراءة الأغاني من جهازك", "Audio access permission is required to read songs from your device", "L'autorisation d'accès audio est requise pour lire les morceaux de l'appareil")
+
+    fun songsDeleted(n: Int): String =
+        if (n == 1) {
+            tr("تم حذف الأغنية نهائياً من الجهاز", "Song permanently deleted from your device", "Titre supprimé définitivement de l'appareil")
+        } else {
+            tr("تم حذف $n أغانٍ نهائياً من الجهاز", "$n songs permanently deleted from your device", "$n titres supprimés définitivement de l'appareil")
+        }
+
+    fun songCountText(n: Int): String = when (n) {
+        0 -> tr("0 أغانٍ", "0 songs", "0 titre")
+        1 -> tr("أغنية واحدة", "1 song", "1 titre")
+        else -> tr("$n أغانٍ", "$n songs", "$n titres")
+    }
+
+    fun likedSubtitleText(n: Int): String =
+        tr("المفضلة • ${songCountText(n)}", "Favorites • ${songCountText(n)}", "Favoris • ${songCountText(n)}")
+
+    fun playlistSubtitleText(n: Int): String =
+        tr("قائمة تشغيل • ${songCountText(n)}", "Playlist • ${songCountText(n)}", "Playlist • ${songCountText(n)}")
+
+    val customPlaylistSubtitle: String
+        get() = tr("قائمة مخصصة • 0 أغانٍ", "Custom playlist • 0 songs", "Playlist personnalisée • 0 titre")
+
+    fun playlistCreated(name: String): String =
+        tr("تم إنشاء \"$name\" وستظهر بالصفحة الرئيسية", "\"$name\" created and will appear on the home page", "« $name » créée, elle apparaîtra sur la page d'accueil")
+
+    fun addedToPlayNext(title: String): String =
+        tr("تمت إضافة \"$title\" إلى التشغيل التالي", "\"$title\" added to play next", "« $title » ajouté à la lecture suivante")
+
+    val songInfoUpdated: String
+        get() = tr("تم تعديل بيانات الأغنية", "Song info updated", "Informations du titre mises à jour")
+
+    fun sleepTimerSet(mins: Int): String =
+        tr("تم ضبط مؤقت النوم على $mins دقيقة", "Sleep timer set to $mins minutes", "Minuteur réglé sur $mins minutes")
+
+    val sleepTimerEndOfTrack: String
+        get() = tr("سيتم إيقاف التشغيل عند نهاية الأغنية الحالية", "Playback will stop at the end of the current song", "La lecture s'arrêtera à la fin du titre en cours")
+
+    fun addedSongsToPlaylist(n: Int, title: String): String =
+        tr("تمت إضافة $n أغانٍ إلى $title", "$n songs added to $title", "$n titres ajoutés à $title")
+
+    val addSongsToPlaylistTitle: String
+        get() = tr("إضافة أغانٍ إلى القائمة", "Add songs to playlist", "Ajouter des titres à la playlist")
+
+    val searchByNameArtist: String
+        get() = tr("ابحث بالاسم أو الفنان...", "Search by name or artist...", "Rechercher par titre ou artiste...")
+
+    fun availableCount(n: Int): String =
+        tr("المتاح: $n مسار", "Available: $n tracks", "Disponibles : $n titres")
+
+    fun selectedOfTotal(sel: Int, total: Int): String =
+        tr("تم تحديد: $sel من $total", "Selected: $sel of $total", "Sélectionnés : $sel sur $total")
+
+    val deselectAllSongs: String
+        get() = tr("إلغاء التحديد", "Deselect all", "Tout désélectionner")
+
+    val selectAllSongs: String
+        get() = tr("تحديد الكل", "Select all", "Tout sélectionner")
+
+    val allSongsAlreadyAdded: String
+        get() = tr("جميع أغانيك مضافة بالفعل إلى هذه القائمة!", "All your songs are already in this playlist!", "Tous vos titres sont déjà dans cette playlist !")
+
+    val noSongsMatchSearch: String
+        get() = tr("لا توجد أغانٍ تطابق بحثك", "No songs match your search", "Aucun titre ne correspond à votre recherche")
+
+    val addBtnLabel: String
+        get() = tr("إضافة", "Add", "Ajouter")
+
+    fun addWithCount(n: Int): String =
+        tr("إضافة ($n)", "Add ($n)", "Ajouter ($n)")
+
+    val eqDialogTitle: String
+        get() = tr("المعادل الصوتي", "Equalizer", "Égaliseur")
+
+    val eqDialogSubtitle: String
+        get() = tr("المعادل والتضخيم المسبق", "Equalizer & Preamp", "Égaliseur et préampli")
+
+    val eqSaved: String
+        get() = tr("تم الحفظ", "Saved", "Enregistré")
+
+    val queueSheetTitle: String
+        get() = tr("قائمة الانتظار والتشغيل التالي", "Queue & Play Next", "File d'attente et lecture suivante")
+
+    fun queueWaitingCount(n: Int): String =
+        tr("$n أغانٍ في الانتظار (اسحب للترتيب)", "$n songs waiting (drag to reorder)", "$n titres en attente (glisser pour réorganiser)")
+
+    val nowPlayingNow: String
+        get() = tr("قيد التشغيل الآن", "Now playing", "En cours de lecture")
+
+    val nextInQueue: String
+        get() = tr("التالي في قائمة التشغيل", "Next in queue", "Suivant dans la file")
+
+    val longPressReorder: String
+        get() = tr("اضغط مطولاً للسحب وتغيير الترتيب", "Long-press to drag and reorder", "Appuyez longuement pour réorganiser")
+
+    val queueEmptyMsg: String
+        get() = tr("لا توجد أغانٍ قادمة في قائمة الانتظار", "No upcoming songs in the queue", "Aucun titre à venir dans la file")
+
+    val chooseQueueAction: String
+        get() = tr("اختر الإجراء لترتيب تشغيل هذه الأغنية في قائمة الانتظار:", "Choose how to place this song in the queue:", "Choisissez comment placer ce titre dans la file :")
+
+    val playNextFirst: String
+        get() = tr("تشغيل أولاً (التالي مباشرة بالدور)", "Play next (first in line)", "Lire ensuite (en premier)")
+
+    val playNowInstantly: String
+        get() = tr("تشغيل الآن فوراً", "Play now", "Lire maintenant")
+
+    val moveToQueueEnd: String
+        get() = tr("نقل إلى نهاية قائمة الانتظار", "Move to end of queue", "Déplacer à la fin de la file")
+
+    val removeFromQueueAction: String
+        get() = tr("إزالة من قائمة الانتظار", "Remove from queue", "Retirer de la file")
+
+    val sleepTimerTurnOff: String
+        get() = tr("إيقاف المؤقت", "Turn off timer", "Désactiver le minuteur")
+
+    fun minutesLabel(n: Int): String =
+        tr("$n دقيقة", "$n minutes", "$n minutes")
+
+    val oneHourLabel: String
+        get() = tr("ساعة واحدة", "1 hour", "1 heure")
+
+    val sleepTimerDialogTitle: String
+        get() = tr("مؤقت النوم", "Sleep timer", "Minuteur de sommeil")
+
+    val sleepTimerRunning: String
+        get() = tr("المؤقت يعمل الآن:", "Timer running:", "Minuteur actif :")
+
+    fun sleepTimeRemaining(timeStr: String): String =
+        tr("$timeStr متبقية", "$timeStr remaining", "$timeStr restant")
+
+    val endOfCurrentTrack: String
+        get() = tr("نهاية المسار الحالي", "End of current track", "Fin du titre en cours")
+
+    val noMatchingResults: String
+        get() = tr("لا توجد نتائج مطابقة", "No matching results", "Aucun résultat correspondant")
+
+    val tryOtherFolderSearch: String
+        get() = tr("جرب البحث باسم مجلد أو مسار آخر", "Try searching another folder name or path", "Essayez un autre nom de dossier ou chemin")
+
+    val scanStorageAndApps: String
+        get() = tr("فحص الذاكرة والتطبيقات", "Scan storage & apps", "Analyser le stockage et les apps")
+
+    fun searchInFolder(name: String): String =
+        tr("بحث داخل $name...", "Search in $name...", "Rechercher dans $name...")
+
+    fun durationHoursMinutes(totalSec: Int): String {
+        val totalMins = totalSec / 60
+        val hours = totalMins / 60
+        val mins = totalMins % 60
+        return if (hours > 0) {
+            tr("$hours س $mins د", "${hours}h ${mins}m", "${hours} h ${mins} min")
+        } else {
+            tr("$mins دقيقة", "$mins min", "$mins min")
+        }
+    }
+
+    val localLibraryLabel: String
+        get() = tr("المكتبة المحلية", "LOCAL LIBRARY", "BIBLIOTHÈQUE LOCALE")
+
+    fun selectedCountLabel(n: Int): String =
+        tr("محدد ($n)", "Selected ($n)", "Sélectionnés ($n)")
+
+    val deselectAllShort: String
+        get() = tr("إلغاء الكل", "Deselect all", "Tout désélectionner")
+
+    fun deleteWithCount(n: Int): String =
+        tr("حذف ($n)", "Delete ($n)", "Supprimer ($n)")
+
+    fun deleteSongsTitle(n: Int): String =
+        tr("حذف $n أغانٍ؟", "Delete $n songs?", "Supprimer $n titres ?")
+
+    val deleteNowConfirmMsg: String
+        get() = tr("هل أنت متأكد من رغبتك في حذف الأغاني المحددة نهائياً من التطبيق وقوائم التشغيل؟", "Are you sure you want to permanently delete the selected songs from the app and playlists?", "Voulez-vous vraiment supprimer définitivement les titres sélectionnés de l'application et des playlists ?")
+
+    val deletePermanentlyBtn: String
+        get() = tr("حذف نهائي", "Delete permanently", "Supprimer définitivement")
+
+    fun defaultPlaylistName(n: Int): String =
+        tr("قائمة تشغيل $n", "Playlist $n", "Playlist $n")
+
+    val newPlaylistFallback: String
+        get() = tr("قائمة جديدة", "New playlist", "Nouvelle playlist")
+
+    val refreshScanDesc: String
+        get() = tr("تحديث فحص جميع مسارات ومجلدات الهاتف", "Rescan all folders and paths on your phone", "Réanalyser tous les dossiers du téléphone")
+
+    fun autoThemeActive(isDark: Boolean): String {
+        val state = if (isDark) {
+            tr("داكن حالياً", "currently dark", "actuellement sombre")
+        } else {
+            tr("فاتح حالياً", "currently light", "actuellement clair")
+        }
+        return tr(
+            "الوضع التلقائي نشط • يتبع سمة هاتفك ($state)",
+            "Auto mode active • follows your phone theme ($state)",
+            "Mode auto actif • suit le thème du téléphone ($state)"
+        )
+    }
+
+    val glassEffectTitle: String
+        get() = tr("مؤثرات الزجاج السائل", "Liquid glass effect", "Effet verre liquide")
+
+    val glassEffectDesc: String
+        get() = tr("التمويه الشفاف وتأثيرات الإضاءة العائمة في الشريط والمشغل", "Translucent blur and floating light effects on the bar and player", "Flou translucide et effets lumineux flottants sur la barre et le lecteur")
+
+    val gaplessDesc: String
+        get() = tr("تشغيل الأغاني المتتابعة بدون فترات صمت", "Play consecutive songs without silent gaps", "Lecture enchaînée sans silence entre les titres")
+
+    val optSubQueue: String
+        get() = tr("قائمة الانتظار", "Queue", "File")
+
+    val optSubPlaylists: String
+        get() = tr("القوائم", "Playlists", "Playlists")
+
+    val optSubArtwork: String
+        get() = tr("الغلاف", "Artwork", "Pochette")
+
+    val optSubTags: String
+        get() = tr("البيانات", "Tags", "Métadonnées")
+
+    val optSubAudio: String
+        get() = tr("ملف صوتي", "Audio file", "Fichier audio")
+
+    val optSubDeviceApp: String
+        get() = tr("الجهاز والتطبيق", "Device & app", "Appareil et app")
+
+    val optSubRemove: String
+        get() = tr("إزالة", "Remove", "Retirer")
+
+    // ---- Labels that used to be hardcoded in the UI (sort menu, equalizer, covers, folders...) ----
+    val sortDateAdded: String get() = tr("تاريخ الإضافة", "Date Added", "Date d'ajout")
+    val sortTitle: String get() = tr("العنوان", "Title", "Titre")
+    val sortArtist: String get() = tr("الفنان", "Artist", "Artiste")
+    val sortDuration: String get() = tr("المدة", "Duration", "Durée")
+
+    /** [key] is the internal sort key used by the Home screen ("Date Added", "Title", ...). */
+    fun sortLabel(key: String): String = when (key) {
+        "Title" -> sortTitle
+        "Artist" -> sortArtist
+        "Duration" -> sortDuration
+        else -> sortDateAdded
+    }
+
+    /** [key] is the internal equalizer preset name. */
+    fun eqPresetLabel(key: String): String = when (key) {
+        "Bass Boost" -> tr("تعزيز الباس", "Bass Boost", "Basses renforcées")
+        "Vocal & Bass" -> tr("صوت وباس", "Vocal & Bass", "Voix et basses")
+        "Rock" -> tr("روك", "Rock", "Rock")
+        "Electronic" -> tr("إلكتروني", "Electronic", "Électronique")
+        "Flat" -> tr("محايد", "Flat", "Neutre")
+        else -> key
+    }
+
+    fun coverPresetLabel(key: String): String = when (key) {
+        "Tawahin Radial" -> tr("طواحين", "Tawahin Radial", "Tawahin radial")
+        "Synthwave Pink" -> tr("سينثويف وردي", "Synthwave Pink", "Synthwave rose")
+        "Neon Cyber" -> tr("نيون سايبر", "Neon Cyber", "Cyber néon")
+        "Sunset Orange" -> tr("برتقالي الغروب", "Sunset Orange", "Orange coucher de soleil")
+        "Deep Ocean" -> tr("المحيط العميق", "Deep Ocean", "Océan profond")
+        "Vintage Vinyl" -> tr("فينيل كلاسيكي", "Vintage Vinyl", "Vinyle vintage")
+        else -> key
+    }
+
+    val playlistWord: String get() = tr("قائمة تشغيل", "Playlist", "Liste de lecture")
+
+    /** Folder names are generated in code (see FolderManager); translate them when displayed. */
+    fun folderDisplayName(raw: String): String = when {
+        raw == "Downloads / التنزيلات" -> tr("التنزيلات", "Downloads", "Téléchargements")
+        raw == "Bluetooth / بلوتوث" -> tr("بلوتوث", "Bluetooth", "Bluetooth")
+        raw == "Recordings / التسجيلات" -> tr("التسجيلات", "Recordings", "Enregistrements")
+        raw == "Music / الموسيقى" -> tr("الموسيقى", "Music", "Musique")
+        raw.startsWith("Music / ") ->
+            tr("الموسيقى", "Music", "Musique") + " / " + raw.removePrefix("Music / ")
+        raw == "مجلد النظام" || raw == "مجلد عام" -> tr("مجلد النظام", "System folder", "Dossier système")
+        raw == "WhatsApp Audio" -> tr("صوتيات واتساب", "WhatsApp Audio", "Audio WhatsApp")
+        raw == "WhatsApp Voice Notes" -> tr("ملاحظات واتساب الصوتية", "WhatsApp Voice Notes", "Notes vocales WhatsApp")
+        raw == "WhatsApp Documents" -> tr("مستندات واتساب", "WhatsApp Documents", "Documents WhatsApp")
+        raw == "Telegram Audio" -> tr("صوتيات تيليجرام", "Telegram Audio", "Audio Telegram")
+        raw == "SnapTube Downloads" -> tr("تنزيلات SnapTube", "SnapTube Downloads", "Téléchargements SnapTube")
+        raw == "VidMate Downloads" -> tr("تنزيلات VidMate", "VidMate Downloads", "Téléchargements VidMate")
+        else -> raw
+    }
+
+    fun folderBadgeDisplay(raw: String): String = when (raw) {
+        "مجلد" -> tr("مجلد", "Folder", "Dossier")
+        "Downloads" -> tr("تنزيلات", "Downloads", "Téléchargements")
+        "Recordings" -> tr("تسجيلات", "Recordings", "Enregistrements")
+        "Music" -> tr("موسيقى", "Music", "Musique")
+        else -> raw
+    }
+
+    // Notification / widget texts
+    val defaultPlayerArtist: String get() = tr("مشغل الموسيقى", "Music player", "Lecteur de musique")
+    val notifChannelName: String
+        get() = tr("تشغيل الموسيقى - Musicfy", "Music playback - Musicfy", "Lecture musicale - Musicfy")
+    val notifChannelDesc: String
+        get() = tr(
+            "إشعار التحكم في تشغيل الموسيقى وشاشة القفل",
+            "Music playback controls and lock screen notification",
+            "Contrôles de lecture et notification de l'écran de verrouillage"
+        )
+
+    fun displayArtist(raw: String): String {
+        val t = raw.trim()
+        return if (t == "فنان غير معروف" || t == "<unknown>" || t.equals("unknown", ignoreCase = true) || t.equals("unknown artist", ignoreCase = true)) {
+            tr("فنان غير معروف", "Unknown artist", "Artiste inconnu")
+        } else {
+            raw
+        }
+    }
 }
 
 object LocalizationManager {

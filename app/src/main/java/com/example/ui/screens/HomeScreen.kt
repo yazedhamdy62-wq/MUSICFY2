@@ -188,7 +188,7 @@ fun HomeScreen(
             item(key = "header_local_library", contentType = "header") {
                 Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
                     Text(
-                        text = "LOCAL LIBRARY",
+                        text = strings.localLibraryLabel,
                         color = ResonanceGreen,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -246,7 +246,7 @@ fun HomeScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = sortOrder,
+                                        text = strings.sortLabel(sortOrder),
                                         color = textSubColor,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
@@ -267,7 +267,7 @@ fun HomeScreen(
                                 ) {
                                     listOf("Date Added", "Title", "Artist", "Duration").forEach { opt ->
                                         DropdownMenuItem(
-                                            text = { Text(opt, color = if (sortOrder == opt) ResonanceGreen else textColor) },
+                                            text = { Text(strings.sortLabel(opt), color = if (sortOrder == opt) ResonanceGreen else textColor) },
                                             onClick = {
                                                 sortOrder = opt
                                                 showSortMenu = false
@@ -316,7 +316,7 @@ fun HomeScreen(
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "محدد (${selectedSongIds.size})",
+                                    text = strings.selectedCountLabel(selectedSongIds.size),
                                     color = textColor,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp
@@ -338,7 +338,7 @@ fun HomeScreen(
                                     }
                                 ) {
                                     Text(
-                                        text = if (selectedSongIds.size == filteredSongs.size) "إلغاء الكل" else "تحديد الكل",
+                                        text = if (selectedSongIds.size == filteredSongs.size) strings.deselectAllShort else strings.selectAllSongs,
                                         color = ResonanceGreen,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.5.sp
@@ -367,7 +367,7 @@ fun HomeScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "حذف (${selectedSongIds.size})",
+                                        text = strings.deleteWithCount(selectedSongIds.size),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -577,6 +577,7 @@ fun HomeScreen(
                     val isSelected = song.id == currentSong.id
                     val isChecked = selectedSongIds.contains(song.id)
                     SongRowItem(
+                        strings = strings,
                         song = song,
                         isSelected = isSelected,
                         isPlaying = isSelected && isPlaying,
@@ -610,7 +611,7 @@ fun HomeScreen(
             containerColor = if (isDark) Color(0xFF14191F) else Color.White,
             title = {
                 Text(
-                    text = "حذف ${selectedSongIds.size} أغانٍ؟",
+                    text = strings.deleteSongsTitle(selectedSongIds.size),
                     color = textColor,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
@@ -618,7 +619,7 @@ fun HomeScreen(
             },
             text = {
                 Text(
-                    text = "هل أنت متأكد من رغبتك في حذف الأغاني المحددة نهائياً من التطبيق وقوائم التشغيل؟",
+                    text = strings.deleteNowConfirmMsg,
                     color = textSubColor,
                     fontSize = 13.5.sp
                 )
@@ -638,12 +639,12 @@ fun HomeScreen(
                     ),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("حذف نهائي", fontWeight = FontWeight.Bold)
+                    Text(strings.deletePermanentlyBtn, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirmDialog = false }) {
-                    Text("إلغاء", color = textSubColor)
+                    Text(strings.cancelBtn, color = textSubColor)
                 }
             }
         )
@@ -700,6 +701,7 @@ private fun QuickPlaylistItem(
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun SongRowItem(
+    strings: AppStrings,
     song: Song,
     isSelected: Boolean,
     isPlaying: Boolean,
@@ -776,7 +778,7 @@ private fun SongRowItem(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = song.artist,
+                text = strings.displayArtist(song.artist),
                 color = subTextColor,
                 fontSize = 12.sp,
                 maxLines = 1,

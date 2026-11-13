@@ -142,7 +142,7 @@ fun SongOptionsBottomSheet(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${song.artist} • ${song.durationFormatted}",
+                        text = "${strings.displayArtist(song.artist)} • ${song.durationFormatted}",
                         color = subTextColor,
                         fontSize = 11.5.sp,
                         maxLines = 1,
@@ -162,7 +162,7 @@ fun SongOptionsBottomSheet(
                 if (showPlayNext) {
                     OptionCardItem(
                         title = strings.playNext,
-                        subtitle = "Queue",
+                        subtitle = strings.optSubQueue,
                         icon = Icons.AutoMirrored.Outlined.QueueMusic,
                         iconTint = ResonanceGreen,
                         textColor = textColor,
@@ -179,7 +179,7 @@ fun SongOptionsBottomSheet(
 
                 OptionCardItem(
                     title = strings.addToPlaylist,
-                    subtitle = "Playlists",
+                    subtitle = strings.optSubPlaylists,
                     icon = Icons.Outlined.PlaylistAdd,
                     iconTint = ResonanceGreen,
                     textColor = textColor,
@@ -192,7 +192,7 @@ fun SongOptionsBottomSheet(
 
                 OptionCardItem(
                     title = strings.changeCover,
-                    subtitle = "Artwork",
+                    subtitle = strings.optSubArtwork,
                     icon = Icons.Outlined.Image,
                     iconTint = Color(0xFF38BDF8),
                     textColor = textColor,
@@ -215,7 +215,7 @@ fun SongOptionsBottomSheet(
                 ) {
                     OptionCardItem(
                         title = strings.editSongInfo,
-                        subtitle = "Tags",
+                        subtitle = strings.optSubTags,
                         icon = Icons.Outlined.Edit,
                         iconTint = Color(0xFFFBBF24),
                         textColor = textColor,
@@ -228,7 +228,7 @@ fun SongOptionsBottomSheet(
 
                     OptionCardItem(
                         title = strings.removeFromPlaylist,
-                        subtitle = currentPlaylist?.title ?: "Playlist",
+                        subtitle = currentPlaylist?.title ?: strings.playlistWord,
                         icon = Icons.Outlined.PlaylistRemove,
                         iconTint = Color(0xFFFF7043),
                         textColor = textColor,
@@ -249,7 +249,7 @@ fun SongOptionsBottomSheet(
                 ) {
                     OptionCardItem(
                         title = strings.shareSong,
-                        subtitle = "Audio",
+                        subtitle = strings.optSubAudio,
                         icon = Icons.Outlined.Share,
                         iconTint = Color(0xFF60A5FA),
                         textColor = textColor,
@@ -265,7 +265,7 @@ fun SongOptionsBottomSheet(
 
                     OptionCardItem(
                         title = strings.deleteSong,
-                        subtitle = "Device & App",
+                        subtitle = strings.optSubDeviceApp,
                         icon = Icons.Outlined.Delete,
                         iconTint = Color(0xFFF87171),
                         textColor = textColor,
@@ -284,7 +284,7 @@ fun SongOptionsBottomSheet(
                 ) {
                     OptionCardItem(
                         title = strings.editSongInfo,
-                        subtitle = "Tags",
+                        subtitle = strings.optSubTags,
                         icon = Icons.Outlined.Edit,
                         iconTint = Color(0xFFFBBF24),
                         textColor = textColor,
@@ -297,7 +297,7 @@ fun SongOptionsBottomSheet(
 
                     OptionCardItem(
                         title = strings.shareSong,
-                        subtitle = "Audio",
+                        subtitle = strings.optSubAudio,
                         icon = Icons.Outlined.Share,
                         iconTint = Color(0xFF60A5FA),
                         textColor = textColor,
@@ -313,7 +313,7 @@ fun SongOptionsBottomSheet(
 
                     OptionCardItem(
                         title = strings.deleteSong,
-                        subtitle = "Remove",
+                        subtitle = strings.optSubRemove,
                         icon = Icons.Outlined.Delete,
                         iconTint = Color(0xFFF87171),
                         textColor = textColor,
@@ -773,7 +773,7 @@ fun ChangeCoverPresetDialog(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = preset.name,
+                                text = strings.coverPresetLabel(preset.name),
                                 color = if (isCurrent) ResonanceGreen else textColor,
                                 fontSize = 10.5.sp,
                                 maxLines = 1,

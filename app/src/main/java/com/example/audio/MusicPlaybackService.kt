@@ -1,5 +1,7 @@
 package com.example.audio
 
+import com.example.data.local.PreferencesManager
+import com.example.data.LocalizationManager
 import com.example.data.ArtworkLoader
 import android.app.Notification
 import android.app.NotificationChannel
@@ -96,7 +98,7 @@ class MusicPlaybackService : Service() {
         }
 
         val title = intent?.getStringExtra(EXTRA_SONG_TITLE) ?: "Musicfy"
-        val artist = intent?.getStringExtra(EXTRA_SONG_ARTIST) ?: "مشغل الموسيقى"
+        val artist = intent?.getStringExtra(EXTRA_SONG_ARTIST) ?: appStrings().defaultPlayerArtist
         val isPlaying = intent?.getBooleanExtra(EXTRA_IS_PLAYING, true) ?: true
         val artUriStr = intent?.getStringExtra(EXTRA_ART_URI)
         val trackUriStr = intent?.getStringExtra(EXTRA_CONTENT_URI)
@@ -232,14 +234,19 @@ class MusicPlaybackService : Service() {
         return bmp
     }
 
+    /** Texts in the language chosen in the app settings. */
+    private fun appStrings() =
+        LocalizationManager.getStrings(PreferencesManager(this).loadSettings().language)
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val strings = appStrings()
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "تشغيل الموسيقى - Musicfy",
+                strings.notifChannelName,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "إشعار التحكم في تشغيل الموسيقى وشاشة القفل"
+                description = strings.notifChannelDesc
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }

@@ -151,10 +151,11 @@ private fun FoldersOverviewContent(
     subTextColor: Color,
     strings: AppStrings
 ) {
-    val filteredFolders = remember(folders, searchQuery) {
+    val filteredFolders = remember(folders, searchQuery, strings) {
         if (searchQuery.isBlank()) folders
         else folders.filter { folder ->
             folder.name.contains(searchQuery, ignoreCase = true) ||
+                    strings.folderDisplayName(folder.name).contains(searchQuery, ignoreCase = true) ||
                     folder.fullPath.contains(searchQuery, ignoreCase = true) ||
                     folder.badgeName.contains(searchQuery, ignoreCase = true) ||
                     folder.songs.any { it.title.contains(searchQuery, ignoreCase = true) || it.artist.contains(searchQuery, ignoreCase = true) }
@@ -310,14 +311,14 @@ private fun FoldersOverviewContent(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = if (searchQuery.isEmpty()) strings.noFoldersFound else "لا توجد نتائج مطابقة",
+                        text = if (searchQuery.isEmpty()) strings.noFoldersFound else strings.noMatchingResults,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = textColor
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = if (searchQuery.isEmpty()) strings.noFoldersFoundDesc else "جرب البحث باسم مجلد أو مسار آخر",
+                        text = if (searchQuery.isEmpty()) strings.noFoldersFoundDesc else strings.tryOtherFolderSearch,
                         fontSize = 13.sp,
                         color = subTextColor,
                         modifier = Modifier.padding(horizontal = 32.dp)
@@ -334,7 +335,7 @@ private fun FoldersOverviewContent(
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("فحص الذاكرة والتطبيقات", fontWeight = FontWeight.Bold)
+                            Text(strings.scanStorageAndApps, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -358,6 +359,7 @@ private fun FoldersOverviewContent(
                         contentType = { "folder_grid_card" }
                     ) { folder ->
                         FolderGridCardItem(
+                            strings = strings,
                             folder = folder,
                             onClick = { onFolderClick(folder) },
                             onPlay = { onPlayFolder(folder.songs, false) },
@@ -383,6 +385,7 @@ private fun FoldersOverviewContent(
                         contentType = { "folder_list_row" }
                     ) { folder ->
                         FolderListRowItem(
+                            strings = strings,
                             folder = folder,
                             onClick = { onFolderClick(folder) },
                             onPlay = { onPlayFolder(folder.songs, false) },
@@ -403,6 +406,7 @@ private fun FoldersOverviewContent(
  */
 @Composable
 private fun FolderListRowItem(
+    strings: AppStrings,
     folder: MusicFolder,
     onClick: () -> Unit,
     onPlay: () -> Unit,
@@ -455,7 +459,7 @@ private fun FolderListRowItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = folder.name,
+                    text = strings.folderDisplayName(folder.name),
                     color = textColor,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
@@ -472,7 +476,7 @@ private fun FolderListRowItem(
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = folder.badgeName,
+                        text = strings.folderBadgeDisplay(folder.badgeName),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = folder.accentColor
@@ -500,7 +504,7 @@ private fun FolderListRowItem(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "${folder.songCount} أغانٍ",
+                    text = strings.songCountText(folder.songCount),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = folder.accentColor
@@ -535,6 +539,7 @@ private fun FolderListRowItem(
  */
 @Composable
 private fun FolderGridCardItem(
+    strings: AppStrings,
     folder: MusicFolder,
     onClick: () -> Unit,
     onPlay: () -> Unit,
@@ -587,7 +592,7 @@ private fun FolderGridCardItem(
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
-                    text = folder.badgeName,
+                    text = strings.folderBadgeDisplay(folder.badgeName),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = folder.accentColor
@@ -618,7 +623,7 @@ private fun FolderGridCardItem(
 
         // Title
         Text(
-            text = folder.name,
+            text = strings.folderDisplayName(folder.name),
             color = textColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -642,7 +647,7 @@ private fun FolderGridCardItem(
 
         // Subtitle stats
         Text(
-            text = "${folder.songCount} أغانٍ • ${folder.totalDurationFormatted}",
+            text = "${strings.songCountText(folder.songCount)} • ${strings.durationHoursMinutes(folder.totalDurationSec)}",
             color = folder.accentColor,
             fontSize = 11.5.sp,
             fontWeight = FontWeight.SemiBold,
@@ -748,14 +753,14 @@ private fun FolderDetailContent(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = folder.name,
+                                text = strings.folderDisplayName(folder.name),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = textColor
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${folder.songCount} مساراً • ${folder.totalDurationFormatted}",
+                                text = "${strings.songCountText(folder.songCount)} • ${strings.durationHoursMinutes(folder.totalDurationSec)}",
                                 fontSize = 13.sp,
                                 color = subTextColor
                             )
@@ -849,7 +854,7 @@ private fun FolderDetailContent(
                             .fillMaxWidth()
                             .height(48.dp),
                         placeholder = {
-                            Text(text = "بحث داخل ${folder.name}...", color = subTextColor, fontSize = 13.sp)
+                            Text(text = strings.searchInFolder(strings.folderDisplayName(folder.name)), color = subTextColor, fontSize = 13.sp)
                         },
                         leadingIcon = {
                             Icon(Icons.Default.Search, contentDescription = null, tint = subTextColor, modifier = Modifier.size(18.dp))
@@ -923,7 +928,7 @@ private fun FolderDetailContent(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${song.artist} • ${song.durationFormatted}",
+                        text = "${strings.displayArtist(song.artist)} • ${song.durationFormatted}",
                         style = MaterialTheme.typography.bodySmall,
                         color = subTextColor,
                         maxLines = 1,

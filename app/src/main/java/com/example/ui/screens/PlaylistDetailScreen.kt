@@ -371,7 +371,7 @@ fun PlaylistDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = song.artist,
+                                text = strings.displayArtist(song.artist),
                                 color = textSubColor,
                                 fontSize = 12.5.sp,
                                 maxLines = 1,

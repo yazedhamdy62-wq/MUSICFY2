@@ -134,7 +134,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "تحديث فحص جميع مسارات ومجلدات الهاتف",
+                            text = strings.refreshScanDesc,
                             color = subTextColor,
                             fontSize = 11.5.sp
                         )
@@ -243,7 +243,7 @@ fun SettingsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "الوضع التلقائي نشط • يتبع سمة هاتفك (${if (isSystemDark) "داكن حالياً" else "فاتح حالياً"})",
+                                    text = strings.autoThemeActive(isSystemDark),
                                     color = ResonanceGreen,
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.SemiBold
@@ -262,14 +262,14 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "مؤثرات الزجاج السائل (Glass Effect)",
+                                text = strings.glassEffectTitle,
                                 color = textColor,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "التمويه الشفاف وتأثيرات الإضاءة العائمة في الشريط والمشغل",
+                                text = strings.glassEffectDesc,
                                 color = subTextColor,
                                 fontSize = 11.5.sp
                             )
@@ -427,7 +427,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "تشغيل الأغاني المتتابعة بدون فترات صمت",
+                                text = strings.gaplessDesc,
                                 color = subTextColor,
                                 fontSize = 11.5.sp
                             )
@@ -556,12 +556,6 @@ fun SettingsScreen(
                         color = textColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Hi-Res Lossless Audio • 32-bit / 192kHz Engine",
-                        color = subTextColor,
-                        fontSize = 11.5.sp
                     )
                 }
             }

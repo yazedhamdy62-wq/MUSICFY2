@@ -1,5 +1,6 @@
 package com.example.ui.dialogs
 
+import com.example.data.AppStrings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +25,7 @@ import com.example.ui.theme.ResonanceGreen
 
 @Composable
 fun EqualizerDialog(
+    strings: AppStrings,
     bands: List<Int>,
     activePreset: String,
     onBandChange: (Int, Int) -> Unit,
@@ -56,13 +58,13 @@ fun EqualizerDialog(
                 ) {
                     Column {
                         Text(
-                            text = "المعادل الصوتي",
+                            text = strings.eqDialogTitle,
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Equalizer & Preamp",
+                            text = strings.eqDialogSubtitle,
                             color = Color(0xFF94A3B8),
                             fontSize = 12.sp
                         )
@@ -94,7 +96,7 @@ fun EqualizerDialog(
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = preset,
+                                text = strings.eqPresetLabel(preset),
                                 color = if (isSelected) Color.Black else Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -165,7 +167,7 @@ fun EqualizerDialog(
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("تم الحفظ", fontWeight = FontWeight.Bold)
+                    Text(strings.eqSaved, fontWeight = FontWeight.Bold)
                 }
             }
         }

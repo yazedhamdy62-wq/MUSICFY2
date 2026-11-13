@@ -138,7 +138,7 @@ fun LibraryScreen(
 
             IconButton(
                 onClick = {
-                    newPlaylistName = "قائمة تشغيل ${playlists.size + 1}"
+                    newPlaylistName = strings.defaultPlaylistName(playlists.size + 1)
                     showCreateDialog = true
                 },
                 modifier = Modifier
@@ -235,6 +235,7 @@ fun LibraryScreen(
                     val firstSong = playlistFirstSongs[playlist.id]
 
                     PlaylistItemGridCard(
+                        strings = strings,
                         playlist = playlist,
                         firstSong = firstSong,
                         allSongs = allSongs,
@@ -265,6 +266,7 @@ fun LibraryScreen(
                     val firstSong = playlistFirstSongs[playlist.id]
 
                     PlaylistItemRow(
+                        strings = strings,
                         playlist = playlist,
                         firstSong = firstSong,
                         allSongs = allSongs,
@@ -555,7 +557,7 @@ fun LibraryScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val name = newPlaylistName.trim().ifEmpty { "قائمة جديدة" }
+                        val name = newPlaylistName.trim().ifEmpty { strings.newPlaylistFallback }
                         onCreateNewPlaylist(name)
                         showCreateDialog = false
                     },
@@ -579,6 +581,7 @@ fun LibraryScreen(
 
 @Composable
 private fun PlaylistItemRow(
+    strings: AppStrings,
     playlist: Playlist,
     firstSong: Song? = null,
     allSongs: List<Song> = emptyList(),
@@ -635,8 +638,8 @@ private fun PlaylistItemRow(
                     Spacer(modifier = Modifier.width(4.dp))
                 }
                 val count = playlist.songCount
-                val countText = if (count == 0) "0 أغانٍ" else if (count == 1) "أغنية واحدة" else "$count أغانٍ"
-                val displaySubtitle = if (playlist.id == "p_liked") "المفضلة • $countText" else "قائمة تشغيل • $countText"
+                val countText = strings.songCountText(count)
+                val displaySubtitle = if (playlist.id == "p_liked") strings.likedSubtitleText(count) else strings.playlistSubtitleText(count)
 
                 Text(
                     text = displaySubtitle,
@@ -669,6 +672,7 @@ private fun PlaylistItemRow(
 
 @Composable
 private fun PlaylistItemGridCard(
+    strings: AppStrings,
     playlist: Playlist,
     firstSong: Song? = null,
     allSongs: List<Song> = emptyList(),
@@ -761,7 +765,7 @@ private fun PlaylistItemGridCard(
         Spacer(modifier = Modifier.height(2.dp))
 
         val count = playlist.songCount
-        val countText = if (count == 0) "0 أغانٍ" else if (count == 1) "أغنية واحدة" else "$count أغانٍ"
+        val countText = strings.songCountText(count)
         Text(
             text = countText,
             color = subTextColor,

@@ -94,7 +94,7 @@ fun AddSongsToPlaylistDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "إضافة أغانٍ إلى القائمة",
+                            text = strings.addSongsToPlaylistTitle,
                             color = textColor,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -133,7 +133,7 @@ fun AddSongsToPlaylistDialog(
                     onValueChange = { searchQuery = it },
                     placeholder = {
                         Text(
-                            text = "ابحث بالاسم أو الفنان...",
+                            text = strings.searchByNameArtist,
                             color = subTextColor,
                             fontSize = 13.sp
                         )
@@ -180,8 +180,8 @@ fun AddSongsToPlaylistDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (selectedIds.isEmpty()) "المتاح: ${filteredSongs.size} مسار"
-                        else "تم تحديد: ${selectedIds.size} من ${filteredSongs.size}",
+                        text = if (selectedIds.isEmpty()) strings.availableCount(filteredSongs.size)
+                        else strings.selectedOfTotal(selectedIds.size, filteredSongs.size),
                         color = if (selectedIds.isEmpty()) subTextColor else ResonanceGreen,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
@@ -200,7 +200,7 @@ fun AddSongsToPlaylistDialog(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = if (selectedIds.size == filteredSongs.size && filteredSongs.isNotEmpty()) "إلغاء التحديد" else "تحديد الكل",
+                                text = if (selectedIds.size == filteredSongs.size && filteredSongs.isNotEmpty()) strings.deselectAllSongs else strings.selectAllSongs,
                                 color = ResonanceGreen,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -220,8 +220,8 @@ fun AddSongsToPlaylistDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (availableSongs.isEmpty()) "جميع أغانيك مضافة بالفعل إلى هذه القائمة!"
-                            else "لا توجد أغانٍ تطابق بحثك",
+                            text = if (availableSongs.isEmpty()) strings.allSongsAlreadyAdded
+                            else strings.noSongsMatchSearch,
                             color = subTextColor,
                             fontSize = 14.sp
                         )
@@ -277,7 +277,7 @@ fun AddSongsToPlaylistDialog(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = song.artist,
+                                        text = strings.displayArtist(song.artist),
                                         color = subTextColor,
                                         fontSize = 12.sp,
                                         maxLines = 1,
@@ -317,7 +317,7 @@ fun AddSongsToPlaylistDialog(
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = textColor),
                         border = BorderStroke(1.dp, borderColor)
                     ) {
-                        Text(text = "إلغاء", fontSize = 14.sp)
+                        Text(text = strings.cancelBtn, fontSize = 14.sp)
                     }
 
                     Button(
@@ -345,7 +345,7 @@ fun AddSongsToPlaylistDialog(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (selectedIds.isEmpty()) "إضافة" else "إضافة (${selectedIds.size})",
+                            text = if (selectedIds.isEmpty()) strings.addBtnLabel else strings.addWithCount(selectedIds.size),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )

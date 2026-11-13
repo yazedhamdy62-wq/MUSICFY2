@@ -1,5 +1,6 @@
 package com.example.audio
 
+import com.example.data.LocalizationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -170,7 +171,8 @@ class AudioPlayerController(private val context: Context) {
             val song = Song(
                 id = savedState.lastSongId,
                 title = savedState.title ?: "Musicfy",
-                artist = savedState.artist ?: "مشغل الموسيقى",
+                artist = savedState.artist
+                    ?: LocalizationManager.getStrings(preferencesManager.loadSettings().language).defaultPlayerArtist,
                 durationSec = savedState.durationSec,
                 contentUri = savedState.contentUri,
                 albumArtUri = savedState.artUri,

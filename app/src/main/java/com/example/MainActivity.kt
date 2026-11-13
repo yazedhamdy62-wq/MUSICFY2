@@ -228,13 +228,13 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                     songsList = filtered
                     restoreOrInitPlayback(filtered)
                     if (isManual) {
-                        snackbarHostState.showSnackbar("تم فحص الذاكرة: تم العثور على ${filtered.size} أغنية")
+                        snackbarHostState.showSnackbar(strings.scanDone(filtered.size))
                     } else if (newlyAdded.isNotEmpty() && previousIds.isNotEmpty()) {
-                        snackbarHostState.showSnackbar("تم العثور على ${newlyAdded.size} أغانٍ جديدة تلقائياً")
+                        snackbarHostState.showSnackbar(strings.newSongsFound(newlyAdded.size))
                     }
                 } else {
                     if (isManual) {
-                        snackbarHostState.showSnackbar("لم يتم العثور على ملفات صوتية في مسارات الجهاز")
+                        snackbarHostState.showSnackbar(strings.noAudioFound)
                     }
                 }
             }
@@ -246,7 +246,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             scope.launch {
-                snackbarHostState.showSnackbar("تم تأكيد حذف الملف من ذاكرة الجهاز بنجاح")
+                snackbarHostState.showSnackbar(strings.deleteConfirmed)
             }
         }
     }
@@ -258,7 +258,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
             scanFilesInternal(isManual = false)
         } else {
             scope.launch {
-                snackbarHostState.showSnackbar("يلزم إذن الوصول لملفات الصوت لقراءة الأغاني من جهازك")
+                snackbarHostState.showSnackbar(strings.audioPermissionNeeded)
             }
         }
     }
@@ -342,7 +342,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
         }
 
         scope.launch {
-            val msg = if (songIds.size == 1) "تم حذف الأغنية نهائياً من الجهاز" else "تم حذف ${songIds.size} أغانٍ نهائياً من الجهاز"
+            val msg = strings.songsDeleted(songIds.size)
             snackbarHostState.showSnackbar(msg)
         }
     }
@@ -397,14 +397,14 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
     }
 
     // Keep All playlists and Liked Songs song count synchronized
-    val synchronizedPlaylists = remember(playlistsList, songsList) {
+    val synchronizedPlaylists = remember(playlistsList, songsList, strings) {
         val likedCount = songsList.count { it.isLiked }
         playlistsList.map { p ->
             if (p.id == "p_liked") {
-                p.copy(songCount = likedCount, subtitle = "قائمتك المفضلة • $likedCount أغنية")
+                p.copy(songCount = likedCount, subtitle = strings.likedSubtitleText(likedCount))
             } else {
                 val realCount = p.songIds.count { id -> songsList.any { it.id == id } }
-                p.copy(songCount = realCount, subtitle = "قائمة تشغيل • $realCount أغانٍ")
+                p.copy(songCount = realCount, subtitle = strings.playlistSubtitleText(realCount))
             }
         }
     }
@@ -532,7 +532,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                                     val newP = Playlist(
                                         id = "p_${System.currentTimeMillis()}",
                                         title = name,
-                                        subtitle = "قائمة مخصصة • 0 أغانٍ",
+                                        subtitle = strings.customPlaylistSubtitle,
                                         songCount = 0,
                                         durationText = "0m",
                                         coverType = CoverArtType.GRADIENT_TEAL,
@@ -543,7 +543,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                                         musicRepository.insertPlaylist(newP)
                                     }
                                     scope.launch {
-                                        snackbarHostState.showSnackbar("تم إنشاء \"$name\" وستظهر بالصفحة الرئيسية")
+                                        snackbarHostState.showSnackbar(strings.playlistCreated(name))
                                     }
                                 },
                                 onRenamePlaylist = { pl, newName ->
@@ -592,7 +592,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                                     playerSettings = updated
                                     preferencesManager.saveSettings(updated)
                                     scope.launch {
-                                        snackbarHostState.showSnackbar("تم مسح الذاكرة المؤقتة بنجاح")
+                                        snackbarHostState.showSnackbar(strings.cacheCleared)
                                     }
                                 }
                             )
@@ -676,6 +676,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                     ) {
                         // Floating Mini Player (isolated progress ticker)
                         MiniPlayerOverlay(
+                            strings = strings,
                             audioPlayer = audioPlayer,
                             currentSong = currentSong,
                             isPlaying = isPlaying,
@@ -823,7 +824,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                         onPlayNext = {
                             audioPlayer.playNextInQueue(targetSong)
                             scope.launch {
-                                snackbarHostState.showSnackbar("تمت إضافة \"${targetSong.title}\" إلى التشغيل التالي")
+                                snackbarHostState.showSnackbar(strings.addedToPlayNext(targetSong.title))
                             }
                         },
                         onRemoveFromPlaylist = playlistForSongOptions?.let { currentPl ->
@@ -911,7 +912,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                                 )
                             }
                             scope.launch {
-                                snackbarHostState.showSnackbar("تم تعديل بيانات الأغنية")
+                                snackbarHostState.showSnackbar(strings.songInfoUpdated)
                             }
                         },
                         onDeleteSong = {
@@ -944,6 +945,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                     val eqBands by audioPlayer.eqBands.collectAsStateWithLifecycle()
                     val activePreset by audioPlayer.activePreset.collectAsStateWithLifecycle()
                     EqualizerDialog(
+                        strings = strings,
                         bands = eqBands,
                         activePreset = activePreset,
                         onBandChange = { idx, valDb -> audioPlayer.updateEqBand(idx, valDb) },
@@ -956,6 +958,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                 if (showSleepTimer) {
                     val sleepTimerSec by audioPlayer.sleepTimerSeconds.collectAsStateWithLifecycle()
                     SleepTimerDialog(
+                        strings = strings,
                         currentMinutes = if (sleepTimerSec != null) (sleepTimerSec!! / 60) else null,
                         remainingSeconds = sleepTimerSec,
                         onSelectMinutes = { mins ->
@@ -963,14 +966,14 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                             playerSettings = playerSettings.copy(sleepTimerMinutes = mins)
                             if (mins != null) {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("تم ضبط مؤقت النوم على $mins دقيقة")
+                                    snackbarHostState.showSnackbar(strings.sleepTimerSet(mins))
                                 }
                             }
                         },
                         onSelectEndOfTrack = {
                             audioPlayer.setSleepTimerToEndOfTrack()
                             scope.launch {
-                                snackbarHostState.showSnackbar("سيتم إيقاف التشغيل عند نهاية الأغنية الحالية")
+                                snackbarHostState.showSnackbar(strings.sleepTimerEndOfTrack)
                             }
                         },
                         onDismiss = { showSleepTimer = false }
@@ -996,7 +999,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                                 musicRepository.updatePlaylistSongs(targetPlaylist.id, combined)
                             }
                             scope.launch {
-                                snackbarHostState.showSnackbar("تمت إضافة ${selectedSongIds.size} أغانٍ إلى ${targetPlaylist.title}")
+                                snackbarHostState.showSnackbar(strings.addedSongsToPlaylist(selectedSongIds.size, targetPlaylist.title))
                             }
                             playlistForAddSongs = null
                         }
@@ -1027,6 +1030,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
  */
 @Composable
 private fun MiniPlayerOverlay(
+    strings: AppStrings,
     audioPlayer: AudioPlayerController,
     currentSong: Song,
     isPlaying: Boolean,
@@ -1043,6 +1047,7 @@ private fun MiniPlayerOverlay(
     }
 
     MiniPlayerBar(
+        strings = strings,
         song = currentSong,
         isPlaying = isPlaying,
         progressFraction = progressFraction,

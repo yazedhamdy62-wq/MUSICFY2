@@ -1,5 +1,6 @@
 package com.example.ui.dialogs
 
+import com.example.data.AppStrings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +27,7 @@ import com.example.ui.theme.ResonanceGreen
 
 @Composable
 fun SleepTimerDialog(
+    strings: AppStrings,
     currentMinutes: Int?,
     remainingSeconds: Int?,
     onSelectMinutes: (Int?) -> Unit,
@@ -40,11 +42,11 @@ fun SleepTimerDialog(
     val borderColor = if (isDark) Color(0xFF26333D) else Color(0xFFE2E8F0)
 
     val options = listOf(
-        Pair("إيقاف المؤقت (Off)", null),
-        Pair("15 دقيقة (15 Minutes)", 15),
-        Pair("30 دقيقة (30 Minutes)", 30),
-        Pair("45 دقيقة (45 Minutes)", 45),
-        Pair("60 دقيقة (1 Hour)", 60)
+        Pair(strings.sleepTimerTurnOff, null),
+        Pair(strings.minutesLabel(15), 15),
+        Pair(strings.minutesLabel(30), 30),
+        Pair(strings.minutesLabel(45), 45),
+        Pair(strings.oneHourLabel, 60)
     )
 
     Dialog(onDismissRequest = onDismiss) {
@@ -83,7 +85,7 @@ fun SleepTimerDialog(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "مؤقت النوم (Sleep Timer)",
+                            text = strings.sleepTimerDialogTitle,
                             color = textColor,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
@@ -120,13 +122,13 @@ fun SleepTimerDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "المؤقت يعمل الآن:",
+                                text = strings.sleepTimerRunning,
                                 color = if (isDark) ResonanceGreen else Color(0xFF047857),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "$timeStr متبقية",
+                                text = strings.sleepTimeRemaining(timeStr),
                                 color = if (isDark) Color.White else Color(0xFF0F172A),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
@@ -154,7 +156,7 @@ fun SleepTimerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "نهاية المسار الحالي (End of current track)",
+                        text = strings.endOfCurrentTrack,
                         color = textColor,
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Medium

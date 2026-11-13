@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.data.AppStrings
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -44,6 +45,7 @@ import com.example.ui.theme.ResonanceGreenGlow
 
 @Composable
 fun MiniPlayerBar(
+    strings: AppStrings,
     song: Song,
     isPlaying: Boolean,
     progressFraction: Float,
@@ -173,7 +175,7 @@ fun MiniPlayerBar(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = song.artist,
+                        text = strings.displayArtist(song.artist),
                         color = artistColor,
                         fontSize = 12.sp,
                         maxLines = 1,

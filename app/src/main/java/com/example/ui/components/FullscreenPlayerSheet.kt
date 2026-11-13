@@ -392,7 +392,7 @@ fun FullscreenPlayerSheet(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = song.artist,
+                            text = strings.displayArtist(song.artist),
                             color = subTextColor,
                             fontSize = if (playerMode == PlayerViewMode.SONG) 15.sp else 13.sp,
                             maxLines = 1,

@@ -131,13 +131,13 @@ fun QueueBottomSheet(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "قائمة الانتظار والتشغيل التالي",
+                            text = strings.queueSheetTitle,
                             color = textColor,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${upcomingSongsState.size} أغانٍ في الانتظار (اسحب للترتيب)",
+                            text = strings.queueWaitingCount(upcomingSongsState.size),
                             color = textSubColor,
                             fontSize = 12.sp
                         )
@@ -159,7 +159,7 @@ fun QueueBottomSheet(
 
             // Now Playing Card
             Text(
-                text = "قيد التشغيل الآن",
+                text = strings.nowPlayingNow,
                 color = ResonanceGreen,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
@@ -236,7 +236,7 @@ fun QueueBottomSheet(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "التالي في قائمة التشغيل",
+                        text = strings.nextInQueue,
                         color = textColor,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -258,7 +258,7 @@ fun QueueBottomSheet(
                 }
 
                 Text(
-                    text = "اضغط مطولاً للسحب وتغيير الترتيب",
+                    text = strings.longPressReorder,
                     color = textSubColor,
                     fontSize = 11.sp
                 )
@@ -273,7 +273,7 @@ fun QueueBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "لا توجد أغانٍ قادمة في قائمة الانتظار",
+                        text = strings.queueEmptyMsg,
                         color = textSubColor,
                         fontSize = 14.sp
                     )
@@ -525,7 +525,7 @@ fun QueueBottomSheet(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "اختر الإجراء لترتيب تشغيل هذه الأغنية في قائمة الانتظار:",
+                        text = strings.chooseQueueAction,
                         color = textSubColor,
                         fontSize = 13.sp
                     )
@@ -549,7 +549,7 @@ fun QueueBottomSheet(
                     ) {
                         Icon(Icons.Default.VerticalAlignTop, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("تشغيل أولاً (التالي مباشرة بالدور)", fontWeight = FontWeight.Bold)
+                        Text(strings.playNextFirst, fontWeight = FontWeight.Bold)
                     }
 
                     // 2. Play Right Now
@@ -565,7 +565,7 @@ fun QueueBottomSheet(
                     ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null, tint = ResonanceGreen, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("تشغيل الآن فوراً")
+                        Text(strings.playNowInstantly)
                     }
 
                     // 3. Move Down to End
@@ -586,7 +586,7 @@ fun QueueBottomSheet(
                     ) {
                         Icon(Icons.Default.VerticalAlignBottom, contentDescription = null, tint = ResonanceGreen, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("نقل إلى نهاية قائمة الانتظار")
+                        Text(strings.moveToQueueEnd)
                     }
 
                     // 4. Remove from Queue
@@ -603,14 +603,14 @@ fun QueueBottomSheet(
                     ) {
                         Icon(Icons.Outlined.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("إزالة من قائمة الانتظار")
+                        Text(strings.removeFromQueueAction)
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { selectedSongForAction = null }) {
-                    Text("إلغاء", color = textSubColor)
+                    Text(strings.cancelBtn, color = textSubColor)
                 }
             }
         )

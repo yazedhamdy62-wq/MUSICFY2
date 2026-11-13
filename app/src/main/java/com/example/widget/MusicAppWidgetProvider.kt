@@ -1,5 +1,6 @@
 package com.example.widget
 
+import com.example.data.LocalizationManager
 import com.example.data.ArtworkLoader
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -112,7 +113,8 @@ class MusicAppWidgetProvider : AppWidgetProvider() {
             val artist = if (song != null && song.id != "none" && song.id != "empty_state") {
                 song.artist
             } else {
-                savedState.artist ?: "مشغل الموسيقى"
+                savedState.artist
+                    ?: LocalizationManager.getStrings(PreferencesManager(context).loadSettings().language).defaultPlayerArtist
             }
 
             val durSec = if (song != null && song.durationSec > 0) {
