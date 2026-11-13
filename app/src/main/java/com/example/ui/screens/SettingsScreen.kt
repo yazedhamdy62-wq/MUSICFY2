@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -113,32 +114,29 @@ fun SettingsScreen(
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 220.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Scan Files Card
+            // Scan Files Card (stacked layout so long texts in any language never squeeze the button)
             item {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
                         .background(cardBackground)
                         .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(18.dp))
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = strings.scanDeviceAudio,
-                            color = textColor,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = strings.refreshScanDesc,
-                            color = subTextColor,
-                            fontSize = 11.5.sp
-                        )
-                    }
+                    Text(
+                        text = strings.scanDeviceAudio,
+                        color = textColor,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = strings.refreshScanDesc,
+                        color = subTextColor,
+                        fontSize = 11.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
                         onClick = onScanFiles,
@@ -148,7 +146,10 @@ fun SettingsScreen(
                         ),
                         shape = RoundedCornerShape(20.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        modifier = Modifier.testTag("settings_scan_btn")
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .testTag("settings_scan_btn")
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Refresh,
@@ -160,7 +161,9 @@ fun SettingsScreen(
                         Text(
                             text = strings.scanFiles,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

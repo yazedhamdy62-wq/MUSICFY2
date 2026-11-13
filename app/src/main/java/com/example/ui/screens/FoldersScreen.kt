@@ -510,7 +510,7 @@ private fun FolderListRowItem(
                     color = folder.accentColor
                 )
                 Text(text = "•", fontSize = 11.sp, color = subTextColor)
-                Text(text = folder.totalDurationFormatted, fontSize = 12.sp, color = subTextColor)
+                Text(text = strings.durationHoursMinutes(folder.totalDurationSec), fontSize = 12.sp, color = subTextColor)
             }
         }
 
