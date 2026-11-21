@@ -62,19 +62,32 @@ fun MiniPlayerBar(
     val titleColor = if (isDark) Color.White else Color(0xFF0F172A)
     val artistColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
     val nextIconColor = if (isDark) Color.White else Color(0xFF1E293B)
-    val progressTrackColor = if (isDark) Color(0xFF2D3748) else Color(0xFFE2E8F0)
+    val progressTrackColor = if (isGlassEffect) {
+        if (isDark) Color(0x24FFFFFF) else Color(0x14000000)
+    } else {
+        if (isDark) Color(0xFF2D3748) else Color(0xFFE2E8F0)
+    }
+    // Rounder corners so the mini player matches the pill-shaped bottom navigation bar
+    val miniShape = RoundedCornerShape(28.dp)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp)
-            .shadow(
-                elevation = if (isDark) 20.dp else 10.dp,
-                shape = RoundedCornerShape(18.dp),
-                ambientColor = if (isDark) Color.Black.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.15f),
-                spotColor = if (isGlassEffect && isDark) ResonanceGreen.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.15f)
+            .then(
+                // Shadows look muddy through transparent glass, so they are only used for the solid style
+                if (isGlassEffect) {
+                    Modifier
+                } else {
+                    Modifier.shadow(
+                        elevation = if (isDark) 20.dp else 10.dp,
+                        shape = miniShape,
+                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.15f),
+                        spotColor = Color.Black.copy(alpha = 0.15f)
+                    )
+                }
             )
-            .clip(RoundedCornerShape(18.dp))
+            .clip(miniShape)
             .clickable(onClick = onClick)
             .pointerInput(Unit) {
                 var totalDragY = 0f
@@ -94,10 +107,11 @@ fun MiniPlayerBar(
         // Liquid glass or solid background layer (ultra-smooth 0ms GPU cost)
         val glassBgBrush: Brush? = remember(isGlassEffect, isDark) {
             if (isGlassEffect) {
+                // Same transparent glass as the bottom navigation bar
                 if (isDark) {
-                    Brush.verticalGradient(listOf(Color(0xF218222C), Color(0xEA101620)))
+                    Brush.verticalGradient(listOf(Color(0x6B151B24), Color(0x5C0F141B)))
                 } else {
-                    Brush.verticalGradient(listOf(Color(0xF6FFFFFF), Color(0xEEF1F5F9)))
+                    Brush.verticalGradient(listOf(Color(0x9EFFFFFF), Color(0x73F1F5F9)))
                 }
             } else null
         }
@@ -105,9 +119,9 @@ fun MiniPlayerBar(
         val glassBorderBrush: Brush? = remember(isGlassEffect, isDark) {
             if (isGlassEffect) {
                 if (isDark) {
-                    Brush.verticalGradient(listOf(Color(0x60FFFFFF), Color(0x3000E676), Color(0x15FFFFFF)))
+                    Brush.verticalGradient(listOf(Color(0x59FFFFFF), Color(0x14FFFFFF)))
                 } else {
-                    Brush.verticalGradient(listOf(Color(0xE0FFFFFF), Color(0x6094A3B8)))
+                    Brush.verticalGradient(listOf(Color(0xE6FFFFFF), Color(0x4094A3B8)))
                 }
             } else null
         }
@@ -122,18 +136,18 @@ fun MiniPlayerBar(
                         Modifier
                             .background(bgBrush)
                             .border(
-                                BorderStroke(1.2.dp, borderBrush),
-                                RoundedCornerShape(18.dp)
+                                BorderStroke(1.dp, borderBrush),
+                                miniShape
                             )
                     } else {
                         if (isDark) {
                             Modifier
                                 .background(Color(0xFF15191E))
-                                .border(BorderStroke(1.2.dp, Color(0xFF2B3540)), RoundedCornerShape(18.dp))
+                                .border(BorderStroke(1.2.dp, Color(0xFF2B3540)), miniShape)
                         } else {
                             Modifier
                                 .background(Color(0xFFFFFFFF))
-                                .border(BorderStroke(1.2.dp, Color(0xFFE2E8F0)), RoundedCornerShape(18.dp))
+                                .border(BorderStroke(1.2.dp, Color(0xFFE2E8F0)), miniShape)
                         }
                     }
                 )
@@ -142,7 +156,7 @@ fun MiniPlayerBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Album artwork thumbnail
@@ -239,11 +253,13 @@ fun MiniPlayerBar(
                 }
             }
 
-            // Slim progress bar along the bottom edge of the mini player
+            // Slim rounded progress bar inset from the edges (fits the pill shape)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, bottom = 7.dp)
                     .height(2.5.dp)
+                    .clip(RoundedCornerShape(50))
                     .background(progressTrackColor)
             ) {
                 Box(

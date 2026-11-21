@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import kotlin.math.abs
+import androidx.compose.ui.graphics.lerp as lerpColor
+import androidx.compose.ui.graphics.Brush
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -73,8 +76,9 @@ fun FloatingBottomNavBar(
     }
 
     val barHeight = 56.dp
+    val barShape = RoundedCornerShape(percent = 50)
     val isDark = MaterialTheme.colorScheme.surface == DarkSurface || MaterialTheme.colorScheme.background == DarkBackground
-    
+
     // High contrast icons for maximum legibility on both glass and solid backgrounds
     val unselectedColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
 
@@ -85,66 +89,60 @@ fun FloatingBottomNavBar(
             .padding(bottom = 14.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Outer capsule container taking 90% of screen width
+        // Outer capsule container taking 90% of screen width.
+        // Not clipped in glass mode so the "lens" can grow taller than the bar while it moves.
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth(0.90f)
                 .height(barHeight)
-                .shadow(
-                    elevation = if (isDark) 24.dp else 12.dp,
-                    shape = RoundedCornerShape(percent = 50),
-                    ambientColor = if (isDark) Color.Black.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.15f),
-                    spotColor = if (isGlassEffect && isDark) ResonanceGreen.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.2f)
+                .then(
+                    if (isGlassEffect) {
+                        Modifier
+                    } else {
+                        Modifier
+                            .shadow(
+                                elevation = if (isDark) 24.dp else 12.dp,
+                                shape = barShape,
+                                ambientColor = if (isDark) Color.Black.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.15f),
+                                spotColor = Color.Black.copy(alpha = 0.2f)
+                            )
+                            .clip(barShape)
+                    }
                 )
-                .clip(RoundedCornerShape(percent = 50))
                 .testTag("floating_bottom_nav_bar")
         ) {
-            // Liquid glass background layer (ultra-smooth 0ms GPU cost)
-            val glassBackgroundBrush = remember(isGlassEffect, isDark) {
-                if (isGlassEffect) {
-                    if (isDark) {
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            listOf(Color(0xF218222C), Color(0xEA101620))
-                        )
-                    } else {
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            listOf(Color(0xF6FFFFFF), Color(0xEEF1F5F9))
-                        )
-                    }
-                } else null
-            }
-            val glassBorderBrush = remember(isGlassEffect, isDark) {
-                if (isGlassEffect) {
-                    if (isDark) {
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            listOf(Color(0x60FFFFFF), Color(0x3000E676), Color(0x15FFFFFF))
-                        )
-                    } else {
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            listOf(Color(0xE0FFFFFF), Color(0x6094A3B8))
-                        )
-                    }
-                } else null
-            }
-
+            // Transparent "liquid glass" bar: clear tinted glass with a thin light rim
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .clip(barShape)
                     .then(
-                        if (isGlassEffect && glassBackgroundBrush != null && glassBorderBrush != null) {
+                        if (isGlassEffect) {
                             Modifier
-                                .background(brush = glassBackgroundBrush)
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        if (isDark) listOf(Color(0x6B151B24), Color(0x5C0F141B))
+                                        else listOf(Color(0x9EFFFFFF), Color(0x73F1F5F9))
+                                    )
+                                )
                                 .border(
-                                    BorderStroke(1.2.dp, glassBorderBrush),
-                                    RoundedCornerShape(percent = 50)
+                                    BorderStroke(
+                                        1.dp,
+                                        Brush.verticalGradient(
+                                            if (isDark) listOf(Color(0x59FFFFFF), Color(0x14FFFFFF))
+                                            else listOf(Color(0xE6FFFFFF), Color(0x4094A3B8))
+                                        )
+                                    ),
+                                    barShape
                                 )
                         } else {
                             Modifier
                                 .background(if (isDark) Color(0xFF15191E) else Color(0xFFFFFFFF))
-                                .border(1.2.dp, if (isDark) Color(0xFF2B3540) else Color(0xFFE2E8F0), RoundedCornerShape(percent = 50))
+                                .border(1.2.dp, if (isDark) Color(0xFF2B3540) else Color(0xFFE2E8F0), barShape)
                         }
                     )
             )
+
             val totalWidth = maxWidth
             val horizontalPadding = 6.dp
             val availableWidth = totalWidth - (horizontalPadding * 2)
@@ -173,7 +171,7 @@ fun FloatingBottomNavBar(
                 horizontalPadding + (tabWidth * (items.size - 1)) + pillPadding
             )
 
-            // Ultra-smooth physics-based spring animation for the sliding indicator pill
+            // Physics-based spring animation for the sliding lens (follows the finger while dragging)
             val animatedOffset by animateDpAsState(
                 targetValue = if (dragAccumulator != 0f) currentOffsetDp else basePillOffset,
                 animationSpec = spring(
@@ -183,51 +181,87 @@ fun FloatingBottomNavBar(
                 label = "nav_pill_sliding_offset"
             )
 
-            val animatedPillWidth by animateDpAsState(
-                targetValue = if (dragAccumulator != 0f) pillWidth * 1.08f else pillWidth,
+            // "Lift": while the lens travels (or is dragged) it grows into a glass bubble that is
+            // taller than the bar and magnifies what is under it; at rest it settles back into a flat capsule.
+            val remainingDp = abs((animatedOffset - basePillOffset).value)
+            val isMoving = isGlassEffect && (dragAccumulator != 0f || remainingDp > 0.75f)
+            val lift by animateFloatAsState(
+                targetValue = if (isMoving) 1f else 0f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMediumLow
+                    stiffness = Spring.StiffnessMedium
                 ),
-                label = "nav_pill_width"
+                label = "nav_lens_lift"
             )
+            // Stretches a little while it is far from its destination (gooey feel)
+            val stretch = if (isGlassEffect) {
+                (remainingDp / tabWidth.value).coerceIn(0f, 1.5f) / 1.5f
+            } else 0f
 
-            // Sliding Active Capsule Pill Indicator (Smooth gliding between items)
-            // Evaluated in LTR coordinate space so offset is strictly distance from the left edge
+            val lensWidth = if (isGlassEffect) {
+                pillWidth * (1f + 0.30f * lift + 0.16f * stretch)
+            } else {
+                pillWidth
+            }
+            val lensHeight = if (isGlassEffect) pillHeight + 20.dp * lift else pillHeight
+
+            // Centre of the lens in LTR coordinates (distance from the bar's left edge)
+            val lensCenter = animatedOffset + pillWidth / 2
+
+            // Sliding lens / active capsule (evaluated in LTR space: offset is the distance from the left edge)
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                val lensShape = RoundedCornerShape(percent = 50)
+                val lensFill: Brush
+                val lensBorder: Brush
+                if (isGlassEffect) {
+                    val restFill = if (isDark) Color.White.copy(alpha = 0.13f) else Color.Black.copy(alpha = 0.07f)
+                    val liftTop = if (isDark) Color.White.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.78f)
+                    val liftBottom = if (isDark) Color.White.copy(alpha = 0.09f) else Color.White.copy(alpha = 0.40f)
+                    lensFill = Brush.verticalGradient(
+                        listOf(lerpColor(restFill, liftTop, lift), lerpColor(restFill, liftBottom, lift))
+                    )
+                    val restBorder = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f)
+                    val borderTop = if (isDark) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.95f)
+                    val borderBottom = if (isDark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.12f)
+                    lensBorder = Brush.verticalGradient(
+                        listOf(lerpColor(restBorder, borderTop, lift), lerpColor(restBorder, borderBottom, lift))
+                    )
+                } else {
+                    val solid = if (isDark) Color(0xFF2E363D) else Color(0xFFE2E8F0)
+                    lensFill = Brush.verticalGradient(listOf(solid, solid))
+                    lensBorder = Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
+                }
+
                 Box(
                     modifier = Modifier
-                        .offset(x = animatedOffset)
+                        .offset(x = animatedOffset - (lensWidth - pillWidth) / 2)
                         .align(Alignment.CenterStart)
-                        .size(width = animatedPillWidth, height = pillHeight)
-                        .clip(RoundedCornerShape(percent = 50))
+                        .size(width = lensWidth, height = lensHeight)
+                        .then(
+                            if (isGlassEffect && lift > 0.02f) {
+                                Modifier.shadow(
+                                    elevation = 10.dp * lift,
+                                    shape = lensShape,
+                                    ambientColor = Color.Black.copy(alpha = 0.30f * lift),
+                                    spotColor = ResonanceGreen.copy(alpha = 0.35f * lift)
+                                )
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .clip(lensShape)
+                        .background(lensFill)
                         .then(
                             if (isGlassEffect) {
-                                if (isDark) {
-                                    Modifier
-                                        .background(
-                                            androidx.compose.ui.graphics.Brush.linearGradient(
-                                                listOf(Color(0x4400E676), Color(0x2200E676))
-                                            )
-                                        )
-                                        .border(BorderStroke(1.dp, Color(0x5500E676)), RoundedCornerShape(percent = 50))
-                                } else {
-                                    Modifier
-                                        .background(
-                                            androidx.compose.ui.graphics.Brush.linearGradient(
-                                                listOf(Color(0x3300E676), Color(0x1A00E676))
-                                            )
-                                        )
-                                        .border(BorderStroke(1.dp, Color(0x4400E676)), RoundedCornerShape(percent = 50))
-                                }
+                                Modifier.border(BorderStroke(1.2.dp, lensBorder), lensShape)
                             } else {
-                                Modifier.background(if (isDark) Color(0xFF2E363D) else Color(0xFFE2E8F0))
+                                Modifier
                             }
                         )
                 )
             }
 
-            // 4 Interactive items row with accurate multi-tab horizontal drag and swipe support
+            // Interactive items row with accurate multi-tab horizontal drag and swipe support
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -277,23 +311,17 @@ fun FloatingBottomNavBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items.forEachIndexed { index, destination ->
-                    val isSelected = destination == selectedDestination
                     val interactionSource = remember { MutableInteractionSource() }
 
-                    val iconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.08f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        ),
-                        label = "nav_icon_scale"
-                    )
+                    // How much the lens covers this tab (1 = exactly under it, 0 = not at all).
+                    // Icons under the lens turn green and get magnified as it passes over them.
+                    val tabVisualIndex = if (isRtl) items.size - 1 - index else index
+                    val tabCenter = horizontalPadding + tabWidth * tabVisualIndex + tabWidth / 2
+                    val distance = abs((lensCenter - tabCenter).value) / tabWidth.value
+                    val proximity = (1f - distance).coerceIn(0f, 1f)
 
-                    val iconColor by animateColorAsState(
-                        targetValue = if (isSelected) ResonanceGreen else unselectedColor,
-                        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                        label = "nav_icon_color"
-                    )
+                    val iconColor = lerpColor(unselectedColor, ResonanceGreen, proximity)
+                    val iconScale = 1f + 0.08f * proximity + 0.22f * lift * proximity
 
                     Box(
                         modifier = Modifier
@@ -310,7 +338,6 @@ fun FloatingBottomNavBar(
                         Box(modifier = Modifier.scale(iconScale)) {
                             when (destination) {
                                 AppNavDestination.HOME -> {
-                                    // Solid Home icon exactly as in screenshot
                                     Icon(
                                         imageVector = Icons.Filled.Home,
                                         contentDescription = "Home",
@@ -319,21 +346,18 @@ fun FloatingBottomNavBar(
                                     )
                                 }
                                 AppNavDestination.FOLDERS -> {
-                                    // Custom Outlined Folder icon with tab and inner crease
                                     FolderNavIcon(
                                         tint = iconColor,
                                         modifier = Modifier.size(23.dp)
                                     )
                                 }
                                 AppNavDestination.LIBRARY -> {
-                                    // Outlined beamed double-music-note matching screenshot
                                     BeamedMusicNotesIcon(
                                         tint = iconColor,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
                                 AppNavDestination.SETTINGS -> {
-                                    // Outlined gear cog matching screenshot
                                     Icon(
                                         imageVector = Icons.Outlined.Settings,
                                         contentDescription = "Settings",
