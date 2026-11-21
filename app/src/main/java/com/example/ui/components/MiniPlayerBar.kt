@@ -60,7 +60,7 @@ fun MiniPlayerBar(
     val isDark = MaterialTheme.colorScheme.background == DarkBackground || MaterialTheme.colorScheme.surface == DarkSurface
 
     val titleColor = if (isDark) Color.White else Color(0xFF020617)
-    val artistColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF1E293B)
+    val artistColor = if (isDark) Color(0xFF8E8E93) else Color(0xFF1E293B)
     val nextIconColor = if (isDark) Color.White else Color(0xFF020617)
     val progressTrackColor = if (isGlassEffect) {
         if (isDark) Color(0x24FFFFFF) else Color(0x14000000)
@@ -104,43 +104,40 @@ fun MiniPlayerBar(
             }
             .testTag("mini_player_bar")
     ) {
-        // Liquid glass or solid background layer (ultra-smooth 0ms GPU cost)
-        val glassBgBrush: Brush? = remember(isGlassEffect, isDark) {
-            if (isGlassEffect) {
-                // Same transparent glass as the bottom navigation bar
-                if (isDark) {
-                    Brush.verticalGradient(listOf(Color(0x6B151B24), Color(0x5C0F141B)))
-                } else {
-                    Brush.verticalGradient(listOf(Color(0x9EFFFFFF), Color(0x73F1F5F9)))
-                }
-            } else null
-        }
+        // Liquid glass (blur + edge refraction of what is behind) or the plain fallbacks
+        val screenBackdrop = LocalGlassBackdrop.current
+        val glassTint = if (isDark) Color(0xB3262626) else Color(0x8CFFFFFF)
+        val glassRim = Brush.linearGradient(
+            if (isDark) listOf(Color(0x66FFFFFF), Color(0x1AFFFFFF), Color(0x33FFFFFF))
+            else listOf(Color(0xE6FFFFFF), Color(0x3394A3B8), Color(0x99FFFFFF))
+        )
 
-        val glassBorderBrush: Brush? = remember(isGlassEffect, isDark) {
-            if (isGlassEffect) {
-                if (isDark) {
-                    Brush.verticalGradient(listOf(Color(0x59FFFFFF), Color(0x14FFFFFF)))
-                } else {
-                    Brush.verticalGradient(listOf(Color(0xE6FFFFFF), Color(0x4094A3B8)))
-                }
-            } else null
-        }
-
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .then(
-                    if (isGlassEffect && glassBgBrush != null && glassBorderBrush != null) {
-                        val bgBrush: Brush = glassBgBrush
-                        val borderBrush: Brush = glassBorderBrush
-                        Modifier
-                            .background(bgBrush)
-                            .border(
-                                BorderStroke(1.dp, borderBrush),
-                                miniShape
-                            )
-                    } else {
-                        if (isDark) {
+        if (isGlassEffect && screenBackdrop != null) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .glassSurface(
+                        worlds = listOf(screenBackdrop),
+                        shape = miniShape,
+                        blur = 4.dp,
+                        refractionHeight = 12.dp,
+                        refractionAmount = 18.dp,
+                        onDrawSurface = {
+                            drawRect(glassTint)
+                            drawGlassRim(28.dp.toPx(), glassRim, 1.dp.toPx())
+                        }
+                    )
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .then(
+                        if (isGlassEffect) {
+                            Modifier
+                                .background(glassTint)
+                                .border(BorderStroke(1.dp, glassRim), miniShape)
+                        } else if (isDark) {
                             Modifier
                                 .background(Color(0xFF15191E))
                                 .border(BorderStroke(1.2.dp, Color(0xFF2B3540)), miniShape)
@@ -149,9 +146,9 @@ fun MiniPlayerBar(
                                 .background(Color(0xFFFFFFFF))
                                 .border(BorderStroke(1.2.dp, Color(0xFFE2E8F0)), miniShape)
                         }
-                    }
-                )
-        )
+                    )
+            )
+        }
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
@@ -207,7 +204,7 @@ fun MiniPlayerBar(
                     Icon(
                         imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isLiked) ResonanceGreen else (if (isDark) Color(0xFF94A3B8) else Color(0xFF334155)),
+                        tint = if (isLiked) ResonanceGreen else (if (isDark) Color(0xFF8E8E93) else Color(0xFF334155)),
                         modifier = Modifier.size(22.dp)
                     )
                 }

@@ -39,6 +39,9 @@ import com.example.data.*
 import com.example.data.local.LocalMusicRepository
 import com.example.data.local.PreferencesManager
 import com.example.ui.components.FloatingBottomNavBar
+import com.example.ui.components.LocalGlassBackdrop
+import com.example.ui.components.glassSource
+import com.example.ui.components.rememberGlassBackdrop
 import com.example.ui.components.AppNavDestination
 import com.example.ui.components.FullscreenPlayerSheet
 import com.example.ui.components.MiniPlayerBar
@@ -428,11 +431,19 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
             snackbarHost = { SnackbarHost(snackbarHostState) },
             containerColor = MaterialTheme.colorScheme.background
         ) { paddingValues ->
+            // Everything the floating glass (mini player + nav bar) looks through
+            val glassBackdrop = rememberGlassBackdrop()
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
             ) {
+              Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .glassSource(glassBackdrop)
+                    .background(MaterialTheme.colorScheme.background)
+              ) {
                 // Main Horizontal Pager for Seamless Finger-Following Screen Gestures
                 HorizontalPager(
                     state = pagerState,
@@ -666,8 +677,11 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                     }
                 }
 
+              } // end of glass source (screens behind the floating glass)
+
                 // Floating Mini Player & Floating Bottom Bar Overlay (when not in Fullscreen Player)
                 if (!isPlayerExpanded) {
+                  CompositionLocalProvider(LocalGlassBackdrop provides glassBackdrop) {
                     Column(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -726,6 +740,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                             isGlassEffect = playerSettings.glassEffect
                         )
                     }
+                  }
                 }
 
                 // Smooth Slide-Up Fullscreen Player Modal Sheet

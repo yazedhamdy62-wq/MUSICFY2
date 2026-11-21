@@ -3,13 +3,10 @@ package com.example.ui.components
 import kotlin.math.abs
 import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.graphics.Brush
-import android.os.Build
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,19 +23,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -46,8 +36,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.DarkBackground
@@ -86,8 +74,19 @@ fun FloatingBottomNavBar(
     val barShape = RoundedCornerShape(percent = 50)
     val isDark = MaterialTheme.colorScheme.surface == DarkSurface || MaterialTheme.colorScheme.background == DarkBackground
 
-    // High contrast icons for maximum legibility on both glass and solid backgrounds
-    val unselectedColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF0B1220)
+    // Liquid glass looks through the screen content provided by MainActivity
+    val screenBackdrop = LocalGlassBackdrop.current
+    val barBackdrop = rememberGlassBackdrop()      // the bar's own glass (seen through by the lens)
+    val accentBackdrop = rememberGlassBackdrop()   // invisible green copy of the icons (revealed by the lens)
+    val liquid = isGlassEffect && screenBackdrop != null
+
+    // Dark smoky glass (charcoal tint) with near-white icons, like iOS 26 / the reference app
+    val unselectedColor = if (isDark) Color(0xFFF2F2F2) else Color(0xFF0B1220)
+    val barTint = if (isDark) Color(0xB3262626) else Color(0x8CFFFFFF)
+    val barRim = Brush.linearGradient(
+        if (isDark) listOf(Color(0x66FFFFFF), Color(0x1AFFFFFF), Color(0x33FFFFFF))
+        else listOf(Color(0xE6FFFFFF), Color(0x3394A3B8), Color(0x99FFFFFF))
+    )
 
     Box(
         modifier = modifier
@@ -96,60 +95,13 @@ fun FloatingBottomNavBar(
             .padding(bottom = 14.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Outer capsule container taking 90% of screen width.
-        // Not clipped in glass mode so the "lens" can grow taller than the bar while it moves.
+        // Outer capsule container taking 90% of screen width (not clipped: the lens can grow taller than the bar)
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth(0.90f)
                 .height(barHeight)
-                .then(
-                    if (isGlassEffect) {
-                        Modifier
-                    } else {
-                        Modifier
-                            .shadow(
-                                elevation = if (isDark) 24.dp else 12.dp,
-                                shape = barShape,
-                                ambientColor = if (isDark) Color.Black.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.15f),
-                                spotColor = Color.Black.copy(alpha = 0.2f)
-                            )
-                            .clip(barShape)
-                    }
-                )
                 .testTag("floating_bottom_nav_bar")
         ) {
-            // Transparent "liquid glass" bar: clear tinted glass with a thin light rim
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(barShape)
-                    .then(
-                        if (isGlassEffect) {
-                            Modifier
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        if (isDark) listOf(Color(0x6B151B24), Color(0x5C0F141B))
-                                        else listOf(Color(0x9EFFFFFF), Color(0x73F1F5F9))
-                                    )
-                                )
-                                .border(
-                                    BorderStroke(
-                                        1.dp,
-                                        Brush.verticalGradient(
-                                            if (isDark) listOf(Color(0x59FFFFFF), Color(0x14FFFFFF))
-                                            else listOf(Color(0xE6FFFFFF), Color(0x4094A3B8))
-                                        )
-                                    ),
-                                    barShape
-                                )
-                        } else {
-                            Modifier
-                                .background(if (isDark) Color(0xFF15191E) else Color(0xFFFFFFFF))
-                                .border(1.2.dp, if (isDark) Color(0xFF2B3540) else Color(0xFFE2E8F0), barShape)
-                        }
-                    )
-            )
-
             val totalWidth = maxWidth
             val horizontalPadding = 6.dp
             val availableWidth = totalWidth - (horizontalPadding * 2)
@@ -165,8 +117,7 @@ fun FloatingBottomNavBar(
             val tabWidthPx = with(density) { tabWidth.toPx() }
 
             // In RTL, Row places Item 0 (Home) on the right and Item 3 (Settings) on the left.
-            // When wrapping the indicator pill in LayoutDirection.Ltr, Alignment.CenterStart is
-            // fixed to the visual left edge, so the base offset from the left edge is computed accordingly.
+            // The lens is evaluated in LTR space (offset = distance from the bar's left edge).
             val basePillOffset = if (isRtl) {
                 horizontalPadding + (tabWidth * (items.size - 1 - selectedIndex)) + pillPadding
             } else {
@@ -188,8 +139,8 @@ fun FloatingBottomNavBar(
                 label = "nav_pill_sliding_offset"
             )
 
-            // "Lift": while the lens travels (or is dragged) it grows into a glass bubble that is
-            // taller than the bar and magnifies what is under it; at rest it settles back into a flat capsule.
+            // "Lift": while the lens travels (or is dragged) it grows into a glass bubble that bends
+            // the light at its edges; at rest it settles back into a flat capsule.
             val remainingDp = abs((animatedOffset - basePillOffset).value)
             val isMoving = isGlassEffect && (dragAccumulator != 0f || remainingDp > 0.75f)
             val lift by animateFloatAsState(
@@ -215,60 +166,60 @@ fun FloatingBottomNavBar(
             // Centre of the lens in LTR coordinates (distance from the bar's left edge)
             val lensCenter = animatedOffset + pillWidth / 2
 
-            // Sliding lens / active capsule (evaluated in LTR space: offset is the distance from the left edge)
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                val lensShape = RoundedCornerShape(percent = 50)
-                val lensFill: Brush
-                val lensBorder: Brush
-                if (isGlassEffect) {
-                    val restFill = if (isDark) Color.White.copy(alpha = 0.13f) else Color.Black.copy(alpha = 0.07f)
-                    val liftTop = if (isDark) Color.White.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.78f)
-                    val liftBottom = if (isDark) Color.White.copy(alpha = 0.09f) else Color.White.copy(alpha = 0.40f)
-                    lensFill = Brush.verticalGradient(
-                        listOf(lerpColor(restFill, liftTop, lift), lerpColor(restFill, liftBottom, lift))
-                    )
-                    val restBorder = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f)
-                    val borderTop = if (isDark) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.95f)
-                    val borderBottom = if (isDark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.12f)
-                    lensBorder = Brush.verticalGradient(
-                        listOf(lerpColor(restBorder, borderTop, lift), lerpColor(restBorder, borderBottom, lift))
-                    )
-                } else {
-                    val solid = if (isDark) Color(0xFF2E363D) else Color(0xFFE2E8F0)
-                    lensFill = Brush.verticalGradient(listOf(solid, solid))
-                    lensBorder = Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .offset(x = animatedOffset - (lensWidth - pillWidth) / 2)
-                        .align(Alignment.CenterStart)
-                        .size(width = lensWidth, height = lensHeight)
-                        .then(
-                            if (isGlassEffect && lift > 0.02f) {
-                                Modifier.shadow(
-                                    elevation = 10.dp * lift,
-                                    shape = lensShape,
-                                    ambientColor = Color.Black.copy(alpha = 0.30f * lift),
-                                    spotColor = ResonanceGreen.copy(alpha = 0.35f * lift)
-                                )
-                            } else {
-                                Modifier
-                            }
-                        )
-                        .clip(lensShape)
-                        .background(lensFill)
-                        .then(
-                            if (isGlassEffect) {
-                                Modifier.border(BorderStroke(1.2.dp, lensBorder), lensShape)
-                            } else {
-                                Modifier
-                            }
-                        )
-                )
+            // Icons magnify a little while the lens is over them
+            val iconScales = items.indices.map { index ->
+                val tabVisualIndex = if (isRtl) items.size - 1 - index else index
+                val tabCenter = horizontalPadding + tabWidth * tabVisualIndex + tabWidth / 2
+                val distance = abs((lensCenter - tabCenter).value) / tabWidth.value
+                val proximity = (1f - distance).coerceIn(0f, 1f)
+                1f + 0.08f * proximity + 0.22f * lift * proximity
             }
 
-            // Interactive items row with accurate multi-tab horizontal drag and swipe support
+            // (A) Bar surface. Recorded into barBackdrop so the lens can bend it.
+            Box(modifier = Modifier.matchParentSize().glassSource(barBackdrop)) {
+                if (liquid && screenBackdrop != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .glassSurface(
+                                worlds = listOf(screenBackdrop),
+                                shape = barShape,
+                                blur = 4.dp,
+                                refractionHeight = 14.dp,
+                                refractionAmount = 20.dp,
+                                onDrawSurface = {
+                                    drawRect(barTint)
+                                    drawGlassRim(size.minDimension / 2f, barRim, 1.dp.toPx())
+                                }
+                            )
+                    )
+                } else if (isGlassEffect) {
+                    // Glass without a backdrop (preview / very old devices): plain tinted capsule
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(barShape)
+                            .background(barTint)
+                            .border(1.dp, barRim, barShape)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shadow(
+                                elevation = if (isDark) 24.dp else 12.dp,
+                                shape = barShape,
+                                ambientColor = if (isDark) Color.Black.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.15f),
+                                spotColor = Color.Black.copy(alpha = 0.2f)
+                            )
+                            .clip(barShape)
+                            .background(if (isDark) Color(0xFF15191E) else Color(0xFFFFFFFF))
+                            .border(1.2.dp, if (isDark) Color(0xFF2B3540) else Color(0xFFE2E8F0), barShape)
+                    )
+                }
+            }
+
+            // (B) Visible icons + touch / swipe handling
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -319,23 +270,6 @@ fun FloatingBottomNavBar(
             ) {
                 items.forEachIndexed { index, destination ->
                     val interactionSource = remember { MutableInteractionSource() }
-
-                    // Position of this tab (LTR coordinates, measured from the bar's left edge)
-                    val tabVisualIndex = if (isRtl) items.size - 1 - index else index
-                    val tabLeft = horizontalPadding + tabWidth * tabVisualIndex
-                    val tabCenter = tabLeft + tabWidth / 2
-
-                    // Magnification only: icons grow slightly as the lens gets close
-                    val distance = abs((lensCenter - tabCenter).value) / tabWidth.value
-                    val proximity = (1f - distance).coerceIn(0f, 1f)
-                    val iconScale = 1f + 0.08f * proximity + 0.22f * lift * proximity
-
-                    // Lens edges expressed in THIS tab's own coordinates (iPhone-style partial fill:
-                    // only the part of the icon that is physically under the lens turns green)
-                    val lensLeftInTab = (animatedOffset - (lensWidth - pillWidth) / 2 - tabLeft).value
-                    val lensRightInTab = lensLeftInTab + lensWidth.value
-                    val lensTouchesTab = lensRightInTab > 0f && lensLeftInTab < tabWidth.value
-
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -348,33 +282,82 @@ fun FloatingBottomNavBar(
                             .testTag("nav_item_${destination.name.lowercase()}"),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Layer 1: the normal (dark) icon, always fully drawn
-                        Box(modifier = Modifier.scale(iconScale)) {
+                        Box(modifier = Modifier.scale(iconScales[index])) {
                             NavIcon(destination = destination, tint = unselectedColor, describe = true)
-                        }
-
-                        // Layer 2: the same icon in green, clipped to the lens shape,
-                        // so it is revealed exactly where the lens passes over it
-                        if (lensTouchesTab) {
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .clip(
-                                        LensClipShape(
-                                            leftDp = lensLeftInTab,
-                                            rightDp = lensRightInTab,
-                                            heightDp = lensHeight.value
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(modifier = Modifier.scale(iconScale)) {
-                                    NavIcon(destination = destination, tint = ResonanceGreen, describe = false)
-                                }
-                            }
                         }
                     }
                 }
+            }
+
+            // (C) Invisible copy of the icons in green. It is only recorded (never shown) and the lens
+            // reveals it, so exactly the part of an icon under the lens turns green.
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .glassSource(accentBackdrop, showOnScreen = false)
+                    .padding(horizontal = horizontalPadding),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.forEachIndexed { index, destination ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(modifier = Modifier.scale(iconScales[index])) {
+                            NavIcon(destination = destination, tint = ResonanceGreen, describe = false)
+                        }
+                    }
+                }
+            }
+
+            // (D) The sliding glass lens (always on top). It shows the world behind it
+            // (screen + bar + green icons) and bends it near its edges while it moves.
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                val lensShape = RoundedCornerShape(percent = 50)
+                val lensWorlds = remember(liquid, screenBackdrop, barBackdrop, accentBackdrop) {
+                    if (liquid && screenBackdrop != null) {
+                        listOf(screenBackdrop, barBackdrop, accentBackdrop)
+                    } else {
+                        listOf(barBackdrop, accentBackdrop)
+                    }
+                }
+                val liftNow = lift
+                val lensRimBrush = Brush.linearGradient(
+                    if (isDark) listOf(
+                        Color.White.copy(alpha = 0.10f + 0.55f * liftNow),
+                        Color.White.copy(alpha = 0.05f + 0.15f * liftNow),
+                        Color.White.copy(alpha = 0.08f + 0.35f * liftNow)
+                    ) else listOf(
+                        Color.Black.copy(alpha = 0.06f + 0.12f * liftNow),
+                        Color.Black.copy(alpha = 0.03f + 0.06f * liftNow),
+                        Color.Black.copy(alpha = 0.05f + 0.10f * liftNow)
+                    )
+                )
+
+                Box(
+                    modifier = Modifier
+                        .offset(x = animatedOffset - (lensWidth - pillWidth) / 2)
+                        .align(Alignment.CenterStart)
+                        .requiredSize(width = lensWidth, height = lensHeight)
+                        .glassSurface(
+                            worlds = lensWorlds,
+                            shape = lensShape,
+                            blur = 0.dp,
+                            refractionHeight = if (liftNow > 0.02f) 18.dp else 0.dp,
+                            refractionAmount = 44.dp * liftNow,
+                            chromatic = true,
+                            onDrawSurface = {
+                                // soft light fill: lighter than the bar, like the reference lens
+                                drawRect(
+                                    if (isDark) Color.White.copy(alpha = 0.13f + 0.05f * liftNow)
+                                    else Color.Black.copy(alpha = 0.07f)
+                                )
+                                drawGlassRim(size.minDimension / 2f, lensRimBrush, 1.2.dp.toPx())
+                            }
+                        )
+                )
             }
         }
     }
@@ -407,35 +390,6 @@ private fun NavIcon(
             contentDescription = if (describe) "Settings" else null,
             tint = tint,
             modifier = Modifier.size(24.dp)
-        )
-    }
-}
-
-/**
- * Pill-shaped clip that follows the sliding lens. Values are in dp, relative to the tab's
- * own left edge; the pill is vertically centred inside the tab.
- */
-private class LensClipShape(
-    private val leftDp: Float,
-    private val rightDp: Float,
-    private val heightDp: Float
-) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density
-    ): Outline {
-        val d = density.density
-        val l = leftDp * d
-        val r = rightDp * d
-        val h = heightDp * d
-        val top = (size.height - h) / 2f
-        val radius = h / 2f
-        return Outline.Rounded(
-            RoundRect(
-                rect = Rect(l, top, r, top + h),
-                cornerRadius = CornerRadius(radius, radius)
-            )
         )
     }
 }
