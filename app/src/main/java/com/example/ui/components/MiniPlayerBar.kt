@@ -59,9 +59,9 @@ fun MiniPlayerBar(
 ) {
     val isDark = MaterialTheme.colorScheme.background == DarkBackground || MaterialTheme.colorScheme.surface == DarkSurface
 
-    val titleColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val artistColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
-    val nextIconColor = if (isDark) Color.White else Color(0xFF1E293B)
+    val titleColor = if (isDark) Color.White else Color(0xFF020617)
+    val artistColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF1E293B)
+    val nextIconColor = if (isDark) Color.White else Color(0xFF020617)
     val progressTrackColor = if (isGlassEffect) {
         if (isDark) Color(0x24FFFFFF) else Color(0x14000000)
     } else {
@@ -207,7 +207,7 @@ fun MiniPlayerBar(
                     Icon(
                         imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isLiked) ResonanceGreen else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
+                        tint = if (isLiked) ResonanceGreen else (if (isDark) Color(0xFF94A3B8) else Color(0xFF334155)),
                         modifier = Modifier.size(22.dp)
                     )
                 }

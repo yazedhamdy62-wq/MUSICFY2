@@ -30,9 +30,15 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -40,6 +46,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -80,7 +87,7 @@ fun FloatingBottomNavBar(
     val isDark = MaterialTheme.colorScheme.surface == DarkSurface || MaterialTheme.colorScheme.background == DarkBackground
 
     // High contrast icons for maximum legibility on both glass and solid backgrounds
-    val unselectedColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+    val unselectedColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF0B1220)
 
     Box(
         modifier = modifier
@@ -313,15 +320,21 @@ fun FloatingBottomNavBar(
                 items.forEachIndexed { index, destination ->
                     val interactionSource = remember { MutableInteractionSource() }
 
-                    // How much the lens covers this tab (1 = exactly under it, 0 = not at all).
-                    // Icons under the lens turn green and get magnified as it passes over them.
+                    // Position of this tab (LTR coordinates, measured from the bar's left edge)
                     val tabVisualIndex = if (isRtl) items.size - 1 - index else index
-                    val tabCenter = horizontalPadding + tabWidth * tabVisualIndex + tabWidth / 2
+                    val tabLeft = horizontalPadding + tabWidth * tabVisualIndex
+                    val tabCenter = tabLeft + tabWidth / 2
+
+                    // Magnification only: icons grow slightly as the lens gets close
                     val distance = abs((lensCenter - tabCenter).value) / tabWidth.value
                     val proximity = (1f - distance).coerceIn(0f, 1f)
-
-                    val iconColor = lerpColor(unselectedColor, ResonanceGreen, proximity)
                     val iconScale = 1f + 0.08f * proximity + 0.22f * lift * proximity
+
+                    // Lens edges expressed in THIS tab's own coordinates (iPhone-style partial fill:
+                    // only the part of the icon that is physically under the lens turns green)
+                    val lensLeftInTab = (animatedOffset - (lensWidth - pillWidth) / 2 - tabLeft).value
+                    val lensRightInTab = lensLeftInTab + lensWidth.value
+                    val lensTouchesTab = lensRightInTab > 0f && lensLeftInTab < tabWidth.value
 
                     Box(
                         modifier = Modifier
@@ -335,35 +348,28 @@ fun FloatingBottomNavBar(
                             .testTag("nav_item_${destination.name.lowercase()}"),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Layer 1: the normal (dark) icon, always fully drawn
                         Box(modifier = Modifier.scale(iconScale)) {
-                            when (destination) {
-                                AppNavDestination.HOME -> {
-                                    Icon(
-                                        imageVector = Icons.Filled.Home,
-                                        contentDescription = "Home",
-                                        tint = iconColor,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                                AppNavDestination.FOLDERS -> {
-                                    FolderNavIcon(
-                                        tint = iconColor,
-                                        modifier = Modifier.size(23.dp)
-                                    )
-                                }
-                                AppNavDestination.LIBRARY -> {
-                                    BeamedMusicNotesIcon(
-                                        tint = iconColor,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                                AppNavDestination.SETTINGS -> {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Settings,
-                                        contentDescription = "Settings",
-                                        tint = iconColor,
-                                        modifier = Modifier.size(24.dp)
-                                    )
+                            NavIcon(destination = destination, tint = unselectedColor, describe = true)
+                        }
+
+                        // Layer 2: the same icon in green, clipped to the lens shape,
+                        // so it is revealed exactly where the lens passes over it
+                        if (lensTouchesTab) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(
+                                        LensClipShape(
+                                            leftDp = lensLeftInTab,
+                                            rightDp = lensRightInTab,
+                                            heightDp = lensHeight.value
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(modifier = Modifier.scale(iconScale)) {
+                                    NavIcon(destination = destination, tint = ResonanceGreen, describe = false)
                                 }
                             }
                         }
@@ -371,6 +377,66 @@ fun FloatingBottomNavBar(
                 }
             }
         }
+    }
+}
+
+/** Draws the icon of a navigation destination with the given tint. */
+@Composable
+private fun NavIcon(
+    destination: AppNavDestination,
+    tint: Color,
+    describe: Boolean
+) {
+    when (destination) {
+        AppNavDestination.HOME -> Icon(
+            imageVector = Icons.Filled.Home,
+            contentDescription = if (describe) "Home" else null,
+            tint = tint,
+            modifier = Modifier.size(24.dp)
+        )
+        AppNavDestination.FOLDERS -> FolderNavIcon(
+            tint = tint,
+            modifier = Modifier.size(23.dp)
+        )
+        AppNavDestination.LIBRARY -> BeamedMusicNotesIcon(
+            tint = tint,
+            modifier = Modifier.size(24.dp)
+        )
+        AppNavDestination.SETTINGS -> Icon(
+            imageVector = Icons.Outlined.Settings,
+            contentDescription = if (describe) "Settings" else null,
+            tint = tint,
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+/**
+ * Pill-shaped clip that follows the sliding lens. Values are in dp, relative to the tab's
+ * own left edge; the pill is vertically centred inside the tab.
+ */
+private class LensClipShape(
+    private val leftDp: Float,
+    private val rightDp: Float,
+    private val heightDp: Float
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val d = density.density
+        val l = leftDp * d
+        val r = rightDp * d
+        val h = heightDp * d
+        val top = (size.height - h) / 2f
+        val radius = h / 2f
+        return Outline.Rounded(
+            RoundRect(
+                rect = Rect(l, top, r, top + h),
+                cornerRadius = CornerRadius(radius, radius)
+            )
+        )
     }
 }
 
