@@ -84,7 +84,16 @@ fun Modifier.glassSource(backdrop: GlassBackdrop, showOnScreen: Boolean = true):
             val h = size.height.roundToInt().coerceAtLeast(1)
             val content = this
             backdrop.layer.record(this, layoutDirection, IntSize(w, h)) {
-                content.drawContent()
+                // Make sure the node's content is really drawn INTO the layer (and not onto the screen):
+                // point the content scope at the layer's canvas for the duration of drawContent().
+                val contentContext = content.drawContext
+                val screenCanvas = contentContext.canvas
+                contentContext.canvas = this.drawContext.canvas
+                try {
+                    content.drawContent()
+                } finally {
+                    contentContext.canvas = screenCanvas
+                }
             }
             if (showOnScreen) {
                 drawLayer(backdrop.layer)
