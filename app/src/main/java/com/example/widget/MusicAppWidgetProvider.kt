@@ -89,6 +89,12 @@ class MusicAppWidgetProvider : AppWidgetProvider() {
             isShuffle: Boolean? = null,
             isRepeat: Boolean? = null
         ) {
+            // the two newer widgets (Glass / Cover) are refreshed from the same triggers
+            try {
+                ModernWidgets.updateAll(context, currentSong, isPlaying, currentPositionSec)
+            } catch (_: Exception) {
+            }
+
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val componentName = ComponentName(context, MusicAppWidgetProvider::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)

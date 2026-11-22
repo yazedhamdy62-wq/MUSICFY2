@@ -55,6 +55,38 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/music_widget_info" />
         </receiver>
+
+        <receiver
+            android:name=".widget.MusicGlassWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_glass_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/music_widget_glass_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.MusicCoverWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_cover_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/music_widget_cover_info" />
+        </receiver>
+
+        <activity
+            android:name=".widget.WidgetShareActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     </application>
 
 </manifest>

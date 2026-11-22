@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Musicfy</string>
+    <string name="widget_glass_name">Musicfy Glass</string>
+    <string name="widget_glass_desc">Liquid glass player with full controls</string>
+    <string name="widget_cover_name">Musicfy Cover</string>
+    <string name="widget_cover_desc">Cover art player with full controls</string>
 </resources>
