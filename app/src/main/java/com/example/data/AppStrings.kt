@@ -227,7 +227,7 @@ data class AppStrings(
             else -> "اسم الأغنية أو الفنان..."
         }
 
-    private fun tr(ar: String, en: String, fr: String): String = when (navHome) {
+    fun tr(ar: String, en: String, fr: String): String = when (navHome) {
         "Home" -> en
         "Accueil" -> fr
         else -> ar
@@ -498,6 +498,15 @@ data class AppStrings(
         "Rock" -> tr("روك", "Rock", "Rock")
         "Electronic" -> tr("إلكتروني", "Electronic", "Électronique")
         "Flat" -> tr("محايد", "Flat", "Neutre")
+        "Pop" -> tr("بوب", "Pop", "Pop")
+        "Hip-Hop" -> tr("هيب هوب", "Hip-Hop", "Hip-Hop")
+        "Jazz" -> tr("جاز", "Jazz", "Jazz")
+        "Classical" -> tr("كلاسيك", "Classical", "Classique")
+        "Acoustic" -> tr("أكوستيك", "Acoustic", "Acoustique")
+        "Vocal Boost" -> tr("تعزيز الصوت", "Vocal Boost", "Voix renforcée")
+        "Treble Boost" -> tr("تعزيز الحدة", "Treble Boost", "Aigus renforcés")
+        "Late Night" -> tr("ليلي", "Late Night", "Nuit")
+        "Custom" -> tr("مخصص", "Custom", "Perso")
         else -> key
     }
 
