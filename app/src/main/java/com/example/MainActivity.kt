@@ -425,7 +425,9 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
         }
     }
 
+    val overlayBackdrop = com.example.ui.components.rememberGlassBackdrop()
     MusicfyTheme(darkTheme = isDarkTheme) {
+      CompositionLocalProvider(com.example.ui.components.LocalOverlayBackdrop provides overlayBackdrop) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -438,6 +440,8 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
             ) {
+             // Everything behind the glass panels (screens + player) is recorded for them to blur
+             Box(modifier = Modifier.fillMaxSize().glassSource(overlayBackdrop)) {
               Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -824,6 +828,8 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                     )
                 }
 
+             } // end of overlay backdrop source
+
                 // Song Options Bottom Sheet (Change cover, device photo, edit tags/name, add to playlist, remove from playlist, delete song, play next)
                 songForOptions?.let { targetSong ->
                     SongOptionsBottomSheet(
@@ -1035,6 +1041,7 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                 }
             }
         }
+          }
     }
 }
 
