@@ -51,7 +51,14 @@ jobs:
           STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           VERSION_CODE: ${{ github.run_number }}
-        run: gradle assembleRelease --no-daemon
+        run: |
+          set +e
+          gradle assembleRelease --no-daemon > build.log 2>&1
+          rc=$?
+          if [ $rc -ne 0 ]; then
+            echo "::error::$(grep -E 'What went wrong|Execution failed|Caused by|error:|e: |Keystore|password|FAILED' -A2 build.log | head -c 1800 | tr '\n' ' ')"
+          fi
+          exit $rc
 
       - uses: actions/upload-artifact@v4
         with:
