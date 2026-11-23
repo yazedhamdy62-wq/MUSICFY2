@@ -49,7 +49,8 @@ jobs:
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          # PKCS12 keystore: the key password is the store password
+          KEY_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           VERSION_CODE: ${{ github.run_number }}
         run: |
           set +e
