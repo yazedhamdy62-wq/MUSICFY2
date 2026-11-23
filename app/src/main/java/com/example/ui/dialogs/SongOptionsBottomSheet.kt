@@ -5,6 +5,7 @@ import com.example.data.shareSongFile
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import com.example.ui.components.GlassOverlay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -65,7 +66,6 @@ fun SongOptionsBottomSheet(
     onEditTitleAndArtist: (String, String) -> Unit,
     onDeleteSong: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     var showCoverDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
@@ -74,68 +74,49 @@ fun SongOptionsBottomSheet(
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
 
     val isDark = MaterialTheme.colorScheme.background == DarkBackground || MaterialTheme.colorScheme.surface == DarkSurface
-    val sheetContainerColor = if (isDark) Color(0xFF14191F) else Color(0xFFFFFFFF)
     val cardBg = if (isDark) Color(0xFF1A2128) else Color(0xFFF1F5F9)
     val optionCardBg = if (isDark) Color(0xFF1C242C) else Color(0xFFF8FAFC)
     val textColor = if (isDark) Color.White else Color(0xFF0F172A)
     val subTextColor = if (isDark) Color(0xFF8E9BAE) else Color(0xFF64748B)
     val borderColor = if (isDark) Color(0xFF26333D) else Color(0xFFE2E8F0)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = sheetContainerColor,
-        scrimColor = Color.Black.copy(alpha = 0.65f),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(top = 12.dp, bottom = 8.dp)
-                    .width(42.dp)
-                    .height(4.5.dp)
-                    .clip(CircleShape)
-                    .background(if (isDark) Color(0xFF333E48) else Color(0xFFCBD5E1))
-            )
-        },
+    GlassOverlay(
+        onDismiss = onDismiss,
+        bottomSheet = true,
         modifier = Modifier.testTag("song_options_bottom_sheet")
-    ) {
+    ) { close ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 6.dp),
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Song Info Preview Header Card
+            // Song header: cover + title + artist
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(cardBg)
-                    .then(if (!isDark) Modifier.border(BorderStroke(1.dp, borderColor), RoundedCornerShape(16.dp)) else Modifier)
-                    .padding(12.dp),
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.10f))
+                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Cover art thumbnail
                 SongCoverArtwork(
                     coverType = song.coverType,
                     gradientColors = song.gradientColors,
                     customImageUri = song.customImageUri,
                     albumArtUri = song.albumArtUri,
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(44.dp)
                         .clip(RoundedCornerShape(10.dp)),
                     isPlaying = false
                 )
-
                 Spacer(modifier = Modifier.width(12.dp))
-
-                // Title and details
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = song.title,
-                        color = textColor,
-                        fontSize = 15.sp,
+                        color = Color.White,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -143,190 +124,49 @@ fun SongOptionsBottomSheet(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "${strings.displayArtist(song.artist)} • ${song.durationFormatted}",
-                        color = subTextColor,
-                        fontSize = 11.5.sp,
+                        color = Color.White.copy(alpha = 0.62f),
+                        fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Action Tiles Grid
-            // Row 1: Play Next (if applicable) + Add to Playlist
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                if (showPlayNext) {
-                    OptionCardItem(
-                        title = strings.playNext,
-                        subtitle = strings.optSubQueue,
-                        icon = Icons.AutoMirrored.Outlined.QueueMusic,
-                        iconTint = ResonanceGreen,
-                        textColor = textColor,
-                        subTextColor = subTextColor,
-                        cardBg = optionCardBg,
-                        borderColor = borderColor,
-                        onClick = {
-                            onPlayNext()
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+            // Actions: same set as before, laid out like the Figma sheet (2 on top, 3 below)
+            val tiles = buildList<GlassOption> {
+                if (showPlayNext) add(GlassOption(strings.playNext, Icons.AutoMirrored.Outlined.QueueMusic) { onPlayNext(); close() })
+                add(GlassOption(strings.addToPlaylist, Icons.Outlined.PlaylistAdd) { showAddToPlaylistDialog = true })
+                add(GlassOption(strings.changeCover, Icons.Outlined.Image) { showCoverDialog = true })
+                if (onRemoveFromPlaylist != null) {
+                    add(GlassOption(strings.removeFromPlaylist, Icons.Outlined.PlaylistRemove) { showRemoveFromPlaylistDialog = true })
                 }
-
-                OptionCardItem(
-                    title = strings.addToPlaylist,
-                    subtitle = strings.optSubPlaylists,
-                    icon = Icons.Outlined.PlaylistAdd,
-                    iconTint = ResonanceGreen,
-                    textColor = textColor,
-                    subTextColor = subTextColor,
-                    cardBg = optionCardBg,
-                    borderColor = borderColor,
-                    onClick = { showAddToPlaylistDialog = true },
-                    modifier = Modifier.weight(1f)
-                )
-
-                OptionCardItem(
-                    title = strings.changeCover,
-                    subtitle = strings.optSubArtwork,
-                    icon = Icons.Outlined.Image,
-                    iconTint = Color(0xFF38BDF8),
-                    textColor = textColor,
-                    subTextColor = subTextColor,
-                    cardBg = optionCardBg,
-                    borderColor = borderColor,
-                    onClick = { showCoverDialog = true },
-                    modifier = Modifier.weight(1f)
-                )
+                add(GlassOption(strings.shareSong, Icons.Outlined.Share) { shareSongFile(context, song); close() })
+                add(GlassOption(strings.editSongInfo, Icons.Outlined.Edit) { showEditDialog = true })
+                add(GlassOption(strings.deleteSong, Icons.Outlined.Delete, danger = true) { showDeleteDialog = true })
+            }
+            val firstRowCount = if (showPlayNext) 3 else 2
+            val rows = buildList {
+                add(tiles.take(firstRowCount))
+                addAll(tiles.drop(firstRowCount).chunked(3))
+            }
+            rows.forEachIndexed { rowIdx, row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    row.forEach { opt ->
+                        GlassOptionTile(opt, Modifier.weight(1f))
+                    }
+                    // keep tile width equal when a row is not full
+                    val full = if (rowIdx == 0) firstRowCount else 3
+                    repeat(full - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-
-            if (onRemoveFromPlaylist != null) {
-                // When opened from a playlist (except Liked/Favorites):
-                // Row 2: Edit Info + Remove from this Playlist
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OptionCardItem(
-                        title = strings.editSongInfo,
-                        subtitle = strings.optSubTags,
-                        icon = Icons.Outlined.Edit,
-                        iconTint = Color(0xFFFBBF24),
-                        textColor = textColor,
-                        subTextColor = subTextColor,
-                        cardBg = optionCardBg,
-                        borderColor = borderColor,
-                        onClick = { showEditDialog = true },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    OptionCardItem(
-                        title = strings.removeFromPlaylist,
-                        subtitle = currentPlaylist?.title ?: strings.playlistWord,
-                        icon = Icons.Outlined.PlaylistRemove,
-                        iconTint = Color(0xFFFF7043),
-                        textColor = textColor,
-                        subTextColor = subTextColor,
-                        cardBg = optionCardBg,
-                        borderColor = borderColor,
-                        onClick = { showRemoveFromPlaylistDialog = true },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Row 3: Delete from Device & App (Full width)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OptionCardItem(
-                        title = strings.shareSong,
-                        subtitle = strings.optSubAudio,
-                        icon = Icons.Outlined.Share,
-                        iconTint = Color(0xFF60A5FA),
-                        textColor = textColor,
-                        subTextColor = subTextColor,
-                        cardBg = optionCardBg,
-                        borderColor = borderColor,
-                        onClick = {
-                            shareSongFile(context, song)
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    OptionCardItem(
-                        title = strings.deleteSong,
-                        subtitle = strings.optSubDeviceApp,
-                        icon = Icons.Outlined.Delete,
-                        iconTint = Color(0xFFF87171),
-                        textColor = textColor,
-                        subTextColor = subTextColor,
-                        cardBg = optionCardBg,
-                        borderColor = borderColor,
-                        onClick = { showDeleteDialog = true },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            } else {
-                // Standard: Row 2 with Edit Info + Delete Song
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OptionCardItem(
-                        title = strings.editSongInfo,
-                        subtitle = strings.optSubTags,
-                        icon = Icons.Outlined.Edit,
-                        iconTint = Color(0xFFFBBF24),
-                        textColor = textColor,
-                        subTextColor = subTextColor,
-                        cardBg = optionCardBg,
-                        borderColor = borderColor,
-                        onClick = { showEditDialog = true },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    OptionCardItem(
-                        title = strings.shareSong,
-                        subtitle = strings.optSubAudio,
-                        icon = Icons.Outlined.Share,
-                        iconTint = Color(0xFF60A5FA),
-                        textColor = textColor,
-                        subTextColor = subTextColor,
-                        cardBg = optionCardBg,
-                        borderColor = borderColor,
-                        onClick = {
-                            shareSongFile(context, song)
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    OptionCardItem(
-                        title = strings.deleteSong,
-                        subtitle = strings.optSubRemove,
-                        icon = Icons.Outlined.Delete,
-                        iconTint = Color(0xFFF87171),
-                        textColor = textColor,
-                        subTextColor = subTextColor,
-                        cardBg = optionCardBg,
-                        borderColor = borderColor,
-                        onClick = { showDeleteDialog = true },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 
@@ -522,61 +362,40 @@ fun SongOptionsBottomSheet(
     }
 }
 
+private class GlassOption(
+    val title: String,
+    val icon: ImageVector,
+    val danger: Boolean = false,
+    val onClick: () -> Unit
+)
+
 @Composable
-private fun OptionCardItem(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    iconTint: Color,
-    textColor: Color,
-    subTextColor: Color,
-    cardBg: Color,
-    borderColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun GlassOptionTile(option: GlassOption, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(18.dp)
+    val contentColor = if (option.danger) Color(0xFFFF8A80) else Color.White
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(cardBg)
-            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 14.dp, horizontal = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .height(78.dp)
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.10f))
+            .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)), shape)
+            .clickable(onClick = option.onClick)
+            .padding(horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .background(iconTint.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = iconTint,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = title,
-            color = textColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+        Icon(
+            imageVector = option.icon,
+            contentDescription = option.title,
+            tint = contentColor,
+            modifier = Modifier.size(26.dp)
         )
-
-        Spacer(modifier = Modifier.height(2.dp))
-
+        Spacer(modifier = Modifier.height(7.dp))
         Text(
-            text = subtitle,
-            color = subTextColor,
-            fontSize = 10.5.sp,
+            text = option.title,
+            color = contentColor,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
