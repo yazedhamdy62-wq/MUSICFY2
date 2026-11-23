@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.*
+import com.example.ui.components.SortDropdown
+import com.example.ui.components.glassChip
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -136,6 +138,7 @@ fun HomeScreen(
                 onClick = { isSearchActive = !isSearchActive },
                 modifier = Modifier
                     .size(40.dp)
+                    .glassChip(CircleShape, isDark)
                     .testTag("home_search_toggle")
             ) {
                 Icon(
@@ -221,9 +224,8 @@ fun HomeScreen(
                                 },
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isBatchMode) ResonanceGreen.copy(alpha = 0.2f) else cardBackground)
-                                    .border(BorderStroke(1.dp, if (isBatchMode) ResonanceGreen else borderColor), CircleShape)
+                                    .glassChip(CircleShape, isDark)
+                                    .then(if (isBatchMode) Modifier.background(ResonanceGreen.copy(alpha = 0.2f)) else Modifier)
                                     .testTag("batch_select_toggle_btn")
                             ) {
                                 Icon(
@@ -234,48 +236,16 @@ fun HomeScreen(
                                 )
                             }
 
-                            // Sort chip dropdown
-                            Box {
-                                Row(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .background(cardBackground)
-                                        .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(20.dp))
-                                        .clickable { showSortMenu = true }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = strings.sortLabel(sortOrder),
-                                        color = textSubColor,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.KeyboardArrowDown,
-                                        contentDescription = null,
-                                        tint = ResonanceGreen,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-
-                                DropdownMenu(
-                                    expanded = showSortMenu,
-                                    onDismissRequest = { showSortMenu = false },
-                                    modifier = Modifier.background(cardBackground)
-                                ) {
-                                    listOf("Date Added", "Title", "Artist", "Duration").forEach { opt ->
-                                        DropdownMenuItem(
-                                            text = { Text(strings.sortLabel(opt), color = if (sortOrder == opt) ResonanceGreen else textColor) },
-                                            onClick = {
-                                                sortOrder = opt
-                                                showSortMenu = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
+                            // Sort chip with animated glass menu and flipping arrow
+                            SortDropdown(
+                                options = listOf("Date Added", "Title", "Artist", "Duration"),
+                                selected = sortOrder,
+                                labelFor = { strings.sortLabel(it) },
+                                onSelect = { sortOrder = it },
+                                isDark = isDark,
+                                textColor = textColor,
+                                subTextColor = textSubColor
+                            )
                         }
                     }
                 }

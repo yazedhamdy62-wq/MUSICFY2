@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.ui.components.FolderSourceBadge
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -416,119 +417,74 @@ private fun FolderListRowItem(
     subTextColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val sourceIcon = getFolderSourceIcon(folder.sourceType)
-
+    // Clean row: app picture, name, path, stats, round play button
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(cardBackground)
-            .border(BorderStroke(1.dp, cardBorder), RoundedCornerShape(14.dp))
+            .border(BorderStroke(1.dp, cardBorder), RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
-            .padding(12.dp)
+            .padding(horizontal = 14.dp, vertical = 14.dp)
             .testTag("folder_row_${folder.id}"),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // App Origin Thumbnail Container (56dp)
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(folder.accentColor.copy(alpha = 0.28f), folder.accentColor.copy(alpha = 0.12f))
-                    )
-                )
-                .border(BorderStroke(1.dp, folder.accentColor.copy(alpha = 0.35f)), RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = sourceIcon,
-                contentDescription = folder.name,
-                tint = folder.accentColor,
-                modifier = Modifier.size(28.dp)
-            )
-        }
+        FolderSourceBadge(sourceType = folder.sourceType, size = 56.dp)
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-        // Center Details (Name, Badge, Monospace Path, Stats)
         Column(modifier = Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = strings.folderDisplayName(folder.name),
-                    color = textColor,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-
-                // Origin Tag Badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(folder.accentColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = strings.folderBadgeDisplay(folder.badgeName),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = folder.accentColor
-                    )
-                }
-            }
+            Text(
+                text = strings.folderDisplayName(folder.name),
+                color = textColor,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
             Spacer(modifier = Modifier.height(3.dp))
 
-            // Full filesystem path
             Text(
                 text = folder.fullPath,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 color = subTextColor,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontFamily = FontFamily.Monospace
+                overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
-            // Songs count and total duration
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = strings.songCountText(folder.songCount),
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = folder.accentColor
+                    color = ResonanceGreen
                 )
-                Text(text = "•", fontSize = 11.sp, color = subTextColor)
-                Text(text = strings.durationHoursMinutes(folder.totalDurationSec), fontSize = 12.sp, color = subTextColor)
+                Text(text = "•", fontSize = 12.sp, color = subTextColor)
+                Text(text = strings.durationHoursMinutes(folder.totalDurationSec), fontSize = 13.sp, color = subTextColor)
             }
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
-        // Quick Play Button
-        IconButton(
-            onClick = onPlay,
+        Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(46.dp)
                 .clip(CircleShape)
-                .background(ResonanceGreen.copy(alpha = 0.14f))
+                .background(ResonanceGreen)
+                .clickable(onClick = onPlay),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = "Play Folder",
-                tint = ResonanceGreen,
-                modifier = Modifier.size(20.dp)
+                tint = Color.Black,
+                modifier = Modifier.size(26.dp)
             )
         }
     }
@@ -549,7 +505,6 @@ private fun FolderGridCardItem(
     subTextColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val sourceIcon = getFolderSourceIcon(folder.sourceType)
 
     Column(
         modifier = modifier
@@ -566,38 +521,11 @@ private fun FolderGridCardItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(folder.accentColor.copy(alpha = 0.32f), folder.accentColor.copy(alpha = 0.12f))
-                    )
-                )
-                .border(BorderStroke(1.dp, folder.accentColor.copy(alpha = 0.35f)), RoundedCornerShape(12.dp)),
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.05f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = sourceIcon,
-                contentDescription = folder.name,
-                tint = folder.accentColor,
-                modifier = Modifier.size(54.dp)
-            )
-
-            // Origin Badge at Top-Start
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(6.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color.Black.copy(alpha = 0.65f))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    text = strings.folderBadgeDisplay(folder.badgeName),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = folder.accentColor
-                )
-            }
+            FolderSourceBadge(sourceType = folder.sourceType, size = 76.dp)
 
             // Quick Play Floating Circle at Bottom-End
             Box(
@@ -606,14 +534,14 @@ private fun FolderGridCardItem(
                     .padding(6.dp)
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.7f))
+                    .background(ResonanceGreen)
                     .clickable(onClick = onPlay),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
                     contentDescription = "Play Folder",
-                    tint = ResonanceGreen,
+                    tint = Color.Black,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -640,7 +568,6 @@ private fun FolderGridCardItem(
             fontSize = 10.5.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            fontFamily = FontFamily.Monospace
         )
 
         Spacer(modifier = Modifier.height(2.dp))
@@ -648,7 +575,7 @@ private fun FolderGridCardItem(
         // Subtitle stats
         Text(
             text = "${strings.songCountText(folder.songCount)} • ${strings.durationHoursMinutes(folder.totalDurationSec)}",
-            color = folder.accentColor,
+            color = ResonanceGreen,
             fontSize = 11.5.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -733,21 +660,7 @@ private fun FolderDetailContent(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(folder.accentColor.copy(alpha = 0.25f))
-                                .border(BorderStroke(1.dp, folder.accentColor.copy(alpha = 0.5f)), RoundedCornerShape(16.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = getFolderSourceIcon(folder.sourceType),
-                                contentDescription = null,
-                                tint = folder.accentColor,
-                                modifier = Modifier.size(30.dp)
-                            )
-                        }
+                        FolderSourceBadge(sourceType = folder.sourceType, size = 56.dp)
 
                         Spacer(modifier = Modifier.width(14.dp))
 
@@ -963,18 +876,5 @@ private fun FolderDetailContent(
                 }
             }
         }
-    }
-}
-
-private fun getFolderSourceIcon(sourceType: FolderSourceType): ImageVector {
-    return when (sourceType) {
-        FolderSourceType.WHATSAPP -> Icons.Default.ChatBubble
-        FolderSourceType.TELEGRAM -> Icons.Default.Send
-        FolderSourceType.DOWNLOADS -> Icons.Default.Download
-        FolderSourceType.MUSIC -> Icons.Default.MusicNote
-        FolderSourceType.BLUETOOTH -> Icons.Default.Bluetooth
-        FolderSourceType.RECORDINGS -> Icons.Default.Mic
-        FolderSourceType.SNAPTUBE, FolderSourceType.VIDMATE -> Icons.Default.PlayCircle
-        FolderSourceType.GENERAL -> Icons.Default.Folder
     }
 }

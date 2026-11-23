@@ -1,6 +1,21 @@
 package com.example.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.FastRewind
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.rounded.VolumeMute
+import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.ui.draw.drawBehind
+import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.lerp
@@ -134,7 +149,12 @@ fun FullscreenPlayerSheet(
         animationSpec = tween(500),
         label = "lyricsGradient"
     )
-    val playerBackgroundBrush = coverGradientBrush(coverAccent, bgColor, isDark, lyricsStrength)
+    // Figma look: the whole player is one rich colour taken from the cover, a bit darker at the bottom
+    val playerBackgroundBrush = androidx.compose.ui.graphics.Brush.verticalGradient(
+        listOf(lerp(coverAccent, Color.Black, 0.28f), lerp(coverAccent, Color.Black, 0.52f))
+    )
+    // Light version of the song colour used for icons, times and the sliders
+    val tone = lerp(coverAccent, Color.White, 0.62f)
 
     Box(
         modifier = modifier
@@ -187,9 +207,7 @@ fun FullscreenPlayerSheet(
             PlayerTopBar(
                 currentMode = playerMode,
                 onModeChange = { playerMode = it },
-                onCollapse = onCollapse,
-                onMenuClick = onOpenOptions,
-                isDark = isDark,
+                tone = tone,
                 strings = strings,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -285,11 +303,12 @@ fun FullscreenPlayerSheet(
                                         .weight(1f)
                                         .height(42.dp)
                                         .testTag("lyrics_write_btn"),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(21.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = if (isDark) ResonanceGreen else Color(0xFF059669)
+                                        containerColor = Color.Black.copy(alpha = 0.18f),
+                                        contentColor = Color.White
                                     ),
-                                    border = BorderStroke(1.dp, borderColor)
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f))
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Edit,
@@ -312,11 +331,12 @@ fun FullscreenPlayerSheet(
                                         .weight(1f)
                                         .height(42.dp)
                                         .testTag("lyrics_search_btn"),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(21.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = textColor
+                                        containerColor = Color.Black.copy(alpha = 0.18f),
+                                        contentColor = Color.White
                                     ),
-                                    border = BorderStroke(1.dp, borderColor)
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.28f))
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Search,
@@ -339,7 +359,7 @@ fun FullscreenPlayerSheet(
                                 rawLyricsText = song.rawLyricsText,
                                 activeIndex = activeLyricIndex,
                                 listState = lyricsListState,
-                                isDark = isDark,
+                                isDark = true,
                                 noLyricsMsg = strings.noLyricsAvailable,
                                 onLineClick = { line ->
                                     onSeek(line.timeSec)
@@ -353,14 +373,14 @@ fun FullscreenPlayerSheet(
                 }
             }
 
-            // Bottom Section: Song Meta, Progress Slider, Playback Controls, Chips
+            // Bottom Section: Song Meta, Progress, Playback Controls, Volume, Extra actions
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Song Metadata Row
+                // Song Metadata Row: title/artist on the left, star + more on the right
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -384,8 +404,8 @@ fun FullscreenPlayerSheet(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = song.title,
-                            color = textColor,
-                            fontSize = if (playerMode == PlayerViewMode.SONG) 22.sp else 17.sp,
+                            color = Color.White,
+                            fontSize = if (playerMode == PlayerViewMode.SONG) 20.sp else 17.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -393,29 +413,49 @@ fun FullscreenPlayerSheet(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = strings.displayArtist(song.artist),
-                            color = subTextColor,
-                            fontSize = if (playerMode == PlayerViewMode.SONG) 15.sp else 13.sp,
+                            color = tone,
+                            fontSize = if (playerMode == PlayerViewMode.SONG) 16.sp else 13.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    IconButton(
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    // Star (favorite)
+                    PlayerCircleButton(
                         onClick = onToggleLike,
+                        fill = tone.copy(alpha = if (isLiked) 0.55f else 0.30f),
                         modifier = Modifier.testTag("fullscreen_like_btn")
                     ) {
                         Icon(
-                            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            imageVector = if (isLiked) Icons.Rounded.Star else Icons.Rounded.StarBorder,
                             contentDescription = "Favorite",
-                            tint = if (isLiked) ResonanceGreen else subTextColor,
-                            modifier = Modifier.size(26.dp)
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    // More (opens the glass options sheet)
+                    PlayerCircleButton(
+                        onClick = onOpenOptions,
+                        fill = tone.copy(alpha = 0.30f),
+                        modifier = Modifier.testTag("player_options_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreHoriz,
+                            contentDescription = "Options",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                // Progress Bar and Timestamps
+                // Progress bar + times (elapsed on the left, remaining on the right)
                 val currentFraction = if (song.durationSec > 0) {
                     currentPositionSec.toFloat() / song.durationSec.toFloat()
                 } else 0f
@@ -423,199 +463,162 @@ fun FullscreenPlayerSheet(
                 var isDragging by remember { mutableStateOf(false) }
                 var dragFraction by remember { mutableStateOf(0f) }
 
-                Slider(
+                ThinSeekBar(
                     value = if (isDragging) dragFraction else currentFraction.coerceIn(0f, 1f),
-                    onValueChange = { frac ->
+                    onChange = { frac ->
                         isDragging = true
                         dragFraction = frac
                     },
-                    onValueChangeFinished = {
+                    onFinished = {
                         isDragging = false
                         onSeek((dragFraction * song.durationSec).toInt())
                     },
-                    colors = SliderDefaults.colors(
-                        thumbColor = ResonanceGreen,
-                        activeTrackColor = ResonanceGreen,
-                        inactiveTrackColor = if (isDark) Color(0xFF26333D) else Color(0xFFCBD5E1)
-                    ),
+                    activeColor = tone,
+                    inactiveColor = tone.copy(alpha = 0.28f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(24.dp)
+                        .height(22.dp)
                         .testTag("fullscreen_seek_slider")
                 )
 
-                // Current time & Remaining/Total time
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
+                        .padding(horizontal = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     val displaySec = if (isDragging) (dragFraction * song.durationSec).toInt() else currentPositionSec
-                    Text(
-                        text = formatTime(displaySec),
-                        color = subTextColor,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = song.durationFormatted,
-                        color = subTextColor,
-                        fontSize = 12.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Playback Control Buttons (Shuffle, Prev, Big Neon Play, Next, Sleep Timer)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Shuffle
-                    IconButton(
-                        onClick = onToggleShuffle,
-                        modifier = Modifier.testTag("fullscreen_shuffle_btn")
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Shuffle,
-                                contentDescription = "Shuffle",
-                                tint = if (isShuffle) ResonanceGreen else (if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)),
-                                modifier = Modifier.size(24.dp)
-                            )
-                            if (isShuffle) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(4.dp)
-                                        .clip(CircleShape)
-                                        .background(ResonanceGreen)
-                                )
-                            }
-                        }
-                    }
-
-                    // Previous
-                    IconButton(
-                        onClick = onPrevious,
-                        modifier = Modifier
-                            .size(46.dp)
-                            .testTag("fullscreen_prev_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SkipPrevious,
-                            contentDescription = "Previous",
-                            tint = iconColor,
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
-
-                    // Big Circular Neon Play/Pause Button
-                    Box(
-                        modifier = Modifier
-                            .size(66.dp)
-                            .shadow(
-                                elevation = 16.dp,
-                                shape = CircleShape,
-                                spotColor = ResonanceGreenGlow,
-                                ambientColor = ResonanceGreen.copy(alpha = 0.4f)
-                            )
-                            .clip(CircleShape)
-                            .background(ResonanceGreen)
-                            .clickable(onClick = onPlayPause)
-                            .testTag("fullscreen_play_pause_btn"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = Color.Black,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-
-                    // Next
-                    IconButton(
-                        onClick = onNext,
-                        modifier = Modifier
-                            .size(46.dp)
-                            .testTag("fullscreen_next_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SkipNext,
-                            contentDescription = "Next",
-                            tint = iconColor,
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
-
-                    // Sleep Timer with countdown indicator
-                    val isTimerActive = (sleepTimerSeconds != null && sleepTimerSeconds > 0) || sleepTimerMinutes != null
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (isTimerActive) ResonanceGreen.copy(alpha = 0.15f) else Color.Transparent,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable(onClick = onOpenSleepTimer)
-                            .testTag("fullscreen_timer_btn")
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Timer,
-                                contentDescription = "Sleep Timer",
-                                tint = if (isTimerActive) ResonanceGreen else subTextColor,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            if (sleepTimerSeconds != null && sleepTimerSeconds > 0) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                val m = sleepTimerSeconds / 60
-                                val s = sleepTimerSeconds % 60
-                                Text(
-                                    text = "%02d:%02d".format(m, s),
-                                    color = ResonanceGreen,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
+                    val remaining = (song.durationSec - displaySec).coerceAtLeast(0)
+                    Text(text = formatTime(displaySec), color = tone, fontSize = 11.sp)
+                    Text(text = "\u200E-" + formatTime(remaining), color = tone, fontSize = 11.sp)
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Bottom actions: Share (audio file), Queue
+                // Rewind / Play-Pause / Forward
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(
-                            onClick = { shareSongFile(context, song) },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Share",
-                                tint = subTextColor,
-                                modifier = Modifier.size(19.dp)
-                            )
-                        }
+                    IconButton(
+                        onClick = onPrevious,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .testTag("fullscreen_prev_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.FastRewind,
+                            contentDescription = "Previous",
+                            tint = Color.White,
+                            modifier = Modifier.size(44.dp)
+                        )
+                    }
 
-                        IconButton(
-                            onClick = onOpenQueue,
-                            modifier = Modifier.size(36.dp)
-                        ) {
+                    IconButton(
+                        onClick = onPlayPause,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .testTag("fullscreen_play_pause_btn")
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = if (isPlaying) "Pause" else "Play",
+                            tint = Color.White,
+                            modifier = Modifier.size(56.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onNext,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .testTag("fullscreen_next_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.FastForward,
+                            contentDescription = "Next",
+                            tint = Color.White,
+                            modifier = Modifier.size(44.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Volume (real device music volume)
+                VolumeRow(tone = tone)
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Shuffle | Sleep timer | Queue. All take the song's colour.
+                val isTimerActive = (sleepTimerSeconds != null && sleepTimerSeconds > 0) || sleepTimerMinutes != null
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onToggleShuffle,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .testTag("fullscreen_shuffle_btn")
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Default.QueueMusic,
-                                contentDescription = "Queue",
-                                tint = subTextColor,
-                                modifier = Modifier.size(20.dp)
+                                imageVector = Icons.Rounded.Shuffle,
+                                contentDescription = "Shuffle",
+                                tint = if (isShuffle) Color.White else tone,
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 3.dp)
+                                    .size(4.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isShuffle) Color.White else Color.Transparent)
                             )
                         }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(26.dp))
+                            .clickable(onClick = onOpenSleepTimer)
+                            .padding(horizontal = 14.dp)
+                            .testTag("fullscreen_timer_btn"),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Timer,
+                            contentDescription = "Sleep Timer",
+                            tint = if (isTimerActive) Color.White else tone,
+                            modifier = Modifier.size(26.dp)
+                        )
+                        if (sleepTimerSeconds != null && sleepTimerSeconds > 0) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "%02d:%02d".format(sleepTimerSeconds / 60, sleepTimerSeconds % 60),
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onOpenQueue,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .testTag("fullscreen_queue_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
+                            contentDescription = "Queue",
+                            tint = tone,
+                            modifier = Modifier.size(26.dp)
+                        )
                     }
                 }
             }
@@ -654,7 +657,8 @@ fun FullscreenPlayerSheet(
     if (showManualLyricsDialog) {
         AlertDialog(
             onDismissRequest = { showManualLyricsDialog = false },
-            containerColor = cardBg,
+            containerColor = lerp(coverAccent, Color.Black, 0.72f),
+            shape = RoundedCornerShape(28.dp),
             title = {
                 Text(
                     text = strings.editLyricsTitle,
@@ -718,91 +722,240 @@ fun FullscreenPlayerSheet(
 private fun PlayerTopBar(
     currentMode: PlayerViewMode,
     onModeChange: (PlayerViewMode) -> Unit,
-    onCollapse: () -> Unit,
-    onMenuClick: () -> Unit,
-    isDark: Boolean,
+    tone: Color,
     strings: AppStrings,
     modifier: Modifier = Modifier
 ) {
-    val iconTint = if (isDark) Color.White else Color(0xFF0F172A)
-    val pillBg = if (isDark) Color(0xFF1E262E) else Color(0xFFE2E8F0)
-    val unselectedText = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    // Glass segmented control: Song | Lyrics. The selected segment slides smoothly.
+    val isSong = currentMode == PlayerViewMode.SONG
+    val segmentWidth = 84.dp
+    val offset by animateDpAsState(
+        targetValue = if (isSong) 0.dp else segmentWidth,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = 0.8f, stiffness = 380f
+        ),
+        label = "segmentOffset"
+    )
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.Black.copy(alpha = 0.22f))
+                .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(24.dp))
+                .padding(4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = offset)
+                    .width(segmentWidth)
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.16f))
+                    .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(20.dp))
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SegmentLabel(
+                    text = strings.playerSongMode,
+                    selected = isSong,
+                    tone = tone,
+                    width = segmentWidth,
+                    onClick = { onModeChange(PlayerViewMode.SONG) },
+                    modifier = Modifier.testTag("toggle_song_mode")
+                )
+                SegmentLabel(
+                    text = strings.playerLyricsMode,
+                    selected = !isSong,
+                    tone = tone,
+                    width = segmentWidth,
+                    onClick = { onModeChange(PlayerViewMode.LYRICS) },
+                    modifier = Modifier.testTag("toggle_lyrics_mode")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SegmentLabel(
+    text: String,
+    selected: Boolean,
+    tone: Color,
+    width: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .width(width)
+            .height(32.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = if (selected) ResonanceGreen else Color.White,
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun PlayerCircleButton(
+    onClick: () -> Unit,
+    fill: Color,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(fill)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) { content() }
+}
+
+/** Thin progress bar: tap or drag anywhere on it. Always drawn left-to-right, even in RTL. */
+@Composable
+private fun ThinSeekBar(
+    value: Float,
+    onChange: (Float) -> Unit,
+    onFinished: () -> Unit,
+    activeColor: Color,
+    inactiveColor: Color,
+    modifier: Modifier = Modifier,
+    trackHeight: androidx.compose.ui.unit.Dp = 5.dp,
+    showThumb: Boolean = true
+) {
+    val latestChange by rememberUpdatedState(onChange)
+    val latestFinished by rememberUpdatedState(onFinished)
+    Box(
+        modifier = modifier
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    latestChange((offset.x / size.width).coerceIn(0f, 1f))
+                    latestFinished()
+                }
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { offset -> latestChange((offset.x / size.width).coerceIn(0f, 1f)) },
+                    onDragEnd = { latestFinished() },
+                    onDragCancel = { latestFinished() },
+                    onHorizontalDrag = { change, _ ->
+                        change.consume()
+                        latestChange((change.position.x / size.width).coerceIn(0f, 1f))
+                    }
+                )
+            }
+            .drawBehind {
+                val h = trackHeight.toPx()
+                val y = (size.height - h) / 2f
+                val r = androidx.compose.ui.geometry.CornerRadius(h / 2f)
+                drawRoundRect(
+                    color = inactiveColor,
+                    topLeft = androidx.compose.ui.geometry.Offset(0f, y),
+                    size = androidx.compose.ui.geometry.Size(size.width, h),
+                    cornerRadius = r
+                )
+                val w = size.width * value.coerceIn(0f, 1f)
+                drawRoundRect(
+                    color = activeColor,
+                    topLeft = androidx.compose.ui.geometry.Offset(0f, y),
+                    size = androidx.compose.ui.geometry.Size(w.coerceAtLeast(h), h),
+                    cornerRadius = r
+                )
+                if (showThumb) {
+                    drawCircle(
+                        color = activeColor,
+                        radius = 6.dp.toPx(),
+                        center = androidx.compose.ui.geometry.Offset(
+                            w.coerceIn(6.dp.toPx(), size.width - 6.dp.toPx()),
+                            size.height / 2f
+                        )
+                    )
+                }
+            }
+    )
+}
+
+/** Device music volume: mute icon, slider, speaker icon. Follows the hardware volume keys too. */
+@Composable
+private fun VolumeRow(tone: Color) {
+    val context = LocalContext.current
+    val audioManager = remember { context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager }
+    val maxVol = remember { audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC).coerceAtLeast(1) }
+    var volume by remember { mutableStateOf(audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC).toFloat() / maxVol) }
+    var userDragging by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(c: android.content.Context?, i: Intent?) {
+                if (!userDragging) {
+                    volume = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC).toFloat() / maxVol
+                }
+            }
+        }
+        val filter = android.content.IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+        context.registerReceiver(receiver, filter)
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+    }
 
     Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("fullscreen_volume_row"),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Collapse arrow
-        IconButton(
-            onClick = onCollapse,
-            modifier = Modifier.testTag("player_collapse_btn")
-        ) {
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "Collapse",
-                tint = iconTint,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-
-        // Center Segmented Toggle: Song | Lyrics
-        Row(
+        Icon(
+            imageVector = Icons.Rounded.VolumeMute,
+            contentDescription = "Volume down",
+            tint = tone,
             modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(pillBg)
-                .padding(3.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val isSong = currentMode == PlayerViewMode.SONG
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSong) ResonanceGreen else Color.Transparent)
-                    .clickable { onModeChange(PlayerViewMode.SONG) }
-                    .padding(horizontal = 14.dp, vertical = 5.dp)
-                    .testTag("toggle_song_mode"),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = strings.playerSongMode,
-                    color = if (isSong) Color.Black else unselectedText,
-                    fontSize = 12.sp,
-                    fontWeight = if (isSong) FontWeight.Bold else FontWeight.Medium
+                .size(18.dp)
+                .clickable {
+                    val v = (audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) - 1).coerceAtLeast(0)
+                    audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, v, 0)
+                    volume = v.toFloat() / maxVol
+                }
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        ThinSeekBar(
+            value = volume,
+            onChange = { f ->
+                userDragging = true
+                volume = f
+                audioManager.setStreamVolume(
+                    android.media.AudioManager.STREAM_MUSIC,
+                    (f * maxVol).roundToInt().coerceIn(0, maxVol),
+                    0
                 )
-            }
-
-            val isLyrics = currentMode == PlayerViewMode.LYRICS
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isLyrics) ResonanceGreen else Color.Transparent)
-                    .clickable { onModeChange(PlayerViewMode.LYRICS) }
-                    .padding(horizontal = 14.dp, vertical = 5.dp)
-                    .testTag("toggle_lyrics_mode"),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = strings.playerLyricsMode,
-                    color = if (isLyrics) Color.Black else unselectedText,
-                    fontSize = 12.sp,
-                    fontWeight = if (isLyrics) FontWeight.Bold else FontWeight.Medium
-                )
-            }
-        }
-
-        // 3 Dots menu
-        IconButton(
-            onClick = onMenuClick,
-            modifier = Modifier.testTag("player_options_btn")
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "Options",
-                tint = iconTint,
-                modifier = Modifier.size(24.dp)
-            )
-        }
+            },
+            onFinished = { userDragging = false },
+            activeColor = tone,
+            inactiveColor = tone.copy(alpha = 0.28f),
+            trackHeight = 4.dp,
+            showThumb = false,
+            modifier = Modifier
+                .weight(1f)
+                .height(22.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Icon(
+            imageVector = Icons.Rounded.VolumeUp,
+            contentDescription = "Volume up",
+            tint = tone,
+            modifier = Modifier
+                .size(20.dp)
+                .clickable {
+                    val v = (audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) + 1).coerceAtMost(maxVol)
+                    audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, v, 0)
+                    volume = v.toFloat() / maxVol
+                }
+        )
     }
 }
 

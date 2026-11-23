@@ -1,5 +1,7 @@
 package com.example.ui.dialogs
 
+import com.example.ui.components.GlassOverlay
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -61,11 +63,12 @@ fun QueueBottomSheet(
     onDismiss: () -> Unit
 ) {
     val isDark = MaterialTheme.colorScheme.background == DarkBackground || MaterialTheme.colorScheme.surface == DarkSurface
-    val bgColor = if (isDark) Color(0xFF14191F) else Color.White
-    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val textSubColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-    val cardBg = if (isDark) DarkSurfaceElevated else Color(0xFFF8FAFC)
-    val borderColor = if (isDark) Color(0xFF26333D) else Color(0xFFE2E8F0)
+    // Liquid-glass look: white-on-glass text and translucent cards, in both themes
+    val bgColor = Color(0xFF1A1A1F)
+    val textColor = Color.White
+    val textSubColor = Color.White.copy(alpha = 0.62f)
+    val cardBg = Color.White.copy(alpha = 0.09f)
+    val borderColor = Color.White.copy(alpha = 0.15f)
 
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
@@ -91,18 +94,10 @@ fun QueueBottomSheet(
 
     val listState = rememberLazyListState()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = bgColor,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = textSubColor.copy(alpha = 0.5f))
-        }
-    ) {
+    GlassOverlay(onDismiss = onDismiss, bottomSheet = true) { close ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .padding(horizontal = 18.dp)
         ) {
             // Header
@@ -145,7 +140,7 @@ fun QueueBottomSheet(
                 }
 
                 IconButton(
-                    onClick = onDismiss,
+                    onClick = close,
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
@@ -302,10 +297,45 @@ fun QueueBottomSheet(
                             label = "scale"
                         )
 
+                        // Shared drag logic: used by the handle (instant drag) and by long-press on the row
+                        val startDrag: () -> Unit = {
+                            draggingIndex = index
+                            dragOffsetY = 0f
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        val dragBy: (Float) -> Unit = { dy ->
+                            dragOffsetY += dy
+                            val currentDragIdx = draggingIndex
+                            if (currentDragIdx != null) {
+                                val targetIdx = when {
+                                    dragOffsetY > itemHeightPx * 0.7f && currentDragIdx < upcomingSongsState.size - 1 -> currentDragIdx + 1
+                                    dragOffsetY < -itemHeightPx * 0.7f && currentDragIdx > 0 -> currentDragIdx - 1
+                                    else -> null
+                                }
+                                if (targetIdx != null) {
+                                    val item = upcomingSongsState.removeAt(currentDragIdx)
+                                    upcomingSongsState.add(targetIdx, item)
+                                    draggingIndex = targetIdx
+                                    dragOffsetY = 0f
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                            }
+                        }
+                        val endDrag: () -> Unit = {
+                            draggingIndex = null
+                            dragOffsetY = 0f
+                            onReorderUpcoming(upcomingSongsState.toList())
+                        }
+                        // The gesture detectors outlive recompositions, so always call the newest versions
+                        val startDragNow by rememberUpdatedState(startDrag)
+                        val dragByNow by rememberUpdatedState(dragBy)
+                        val endDragNow by rememberUpdatedState(endDrag)
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .zIndex(if (isDragging) 10f else 1f)
+                                .then(if (isDragging) Modifier else Modifier.animateItem())
                                 .graphicsLayer {
                                     scaleX = itemScale
                                     scaleY = itemScale
@@ -315,7 +345,7 @@ fun QueueBottomSheet(
                                 }
                                 .shadow(elevation, RoundedCornerShape(14.dp))
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isDragging) (if (isDark) Color(0xFF1B2631) else Color(0xFFEDE9FE)) else cardBg)
+                                .background(if (isDragging) Color.White.copy(alpha = 0.22f) else cardBg)
                                 .border(
                                     BorderStroke(
                                         if (isDragging) 2.dp else 1.dp,
@@ -325,40 +355,13 @@ fun QueueBottomSheet(
                                 )
                                 .pointerInput(upcomingSongsState) {
                                     detectDragGesturesAfterLongPress(
-                                        onDragStart = {
-                                            draggingIndex = index
-                                            dragOffsetY = 0f
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        },
+                                        onDragStart = { startDragNow() },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
-                                            dragOffsetY += dragAmount.y
-
-                                            val currentDragIdx = draggingIndex ?: return@detectDragGesturesAfterLongPress
-                                            val targetIdx = when {
-                                                dragOffsetY > itemHeightPx * 0.7f && currentDragIdx < upcomingSongsState.size - 1 -> currentDragIdx + 1
-                                                dragOffsetY < -itemHeightPx * 0.7f && currentDragIdx > 0 -> currentDragIdx - 1
-                                                else -> null
-                                            }
-
-                                            if (targetIdx != null) {
-                                                val item = upcomingSongsState.removeAt(currentDragIdx)
-                                                upcomingSongsState.add(targetIdx, item)
-                                                draggingIndex = targetIdx
-                                                dragOffsetY = 0f
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            }
+                                            dragByNow(dragAmount.y)
                                         },
-                                        onDragEnd = {
-                                            draggingIndex = null
-                                            dragOffsetY = 0f
-                                            onReorderUpcoming(upcomingSongsState.toList())
-                                        },
-                                        onDragCancel = {
-                                            draggingIndex = null
-                                            dragOffsetY = 0f
-                                            onReorderUpcoming(upcomingSongsState.toList())
-                                        }
+                                        onDragEnd = { endDragNow() },
+                                        onDragCancel = { endDragNow() }
                                     )
                                 }
                                 .padding(horizontal = 10.dp, vertical = 8.dp)
@@ -370,7 +373,20 @@ fun QueueBottomSheet(
                                 // Drag Handle & Track Order Number
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.width(38.dp)
+                                    modifier = Modifier
+                                        .width(44.dp)
+                                        .height(48.dp)
+                                        .pointerInput(upcomingSongsState) {
+                                            detectDragGestures(
+                                                onDragStart = { startDragNow() },
+                                                onDrag = { change, dragAmount ->
+                                                    change.consume()
+                                                    dragByNow(dragAmount.y)
+                                                },
+                                                onDragEnd = { endDragNow() },
+                                                onDragCancel = { endDragNow() }
+                                            )
+                                        }
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.DragHandle,
