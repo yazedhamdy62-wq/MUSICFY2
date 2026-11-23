@@ -50,7 +50,18 @@ internal object LyricsQuery {
         var t = raw.replace(Regex("""[(\[][^)\]]*[)\]]"""), " ")
         t = t.replace('_', ' ')
         t = t.replace(Regex("""\s+"""), " ").trim()
+        t = normalizeArabic(t)
         return if (t.isNotEmpty()) t else raw.trim()
+    }
+
+    /** Arabic spelling variants differ between tags and lyric sites: unify them for matching. */
+    fun normalizeArabic(s: String): String {
+        if (s.none { it in '\u0600'..'\u06FF' }) return s
+        return s
+            .replace(Regex("[\u064B-\u065F\u0670\u0640]"), "")   // tashkeel + tatweel
+            .replace(Regex("[\u0622\u0623\u0625]"), "\u0627")     // آ أ إ -> ا
+            .replace('\u0649', '\u064A')                            // ى -> ي
+            .replace('\u0629', '\u0647')                            // ة -> ه
     }
 
     fun isRealArtist(artist: String): Boolean {
@@ -81,13 +92,29 @@ object LyricsSearch {
         artist: String,
         durationSec: Int,
         customQuery: String? = null
+    ): List<OnlineLyricsResult> {
+        val first = searchOnce(title, artist, durationSec, customQuery)
+        // Arabic artist names in tags often don't match the Latin/other spelling used by the
+        // sources: if nothing was found, try again with the title only.
+        if (first.isEmpty() && customQuery.isNullOrBlank() && LyricsQuery.isRealArtist(artist)) {
+            return try { searchOnce(title, "", durationSec, null) } catch (e: IOException) { first }
+        }
+        return first
+    }
+
+    private suspend fun searchOnce(
+        title: String,
+        artist: String,
+        durationSec: Int,
+        customQuery: String?
     ): List<OnlineLyricsResult> = coroutineScope {
         val query = customQuery?.trim()?.takeIf { it.isNotEmpty() }
 
         val outcomes = listOf(
             async { runProvider { LrclibClient.search(title, artist, durationSec, query) } },
             async { runProvider { KuGouClient.search(title, artist, durationSec, query) } },
-            async { runProvider { NetEaseClient.search(title, artist, durationSec, query) } }
+            async { runProvider { NetEaseClient.search(title, artist, durationSec, query) } },
+            async { runProvider { LyricsOvhClient.search(title, artist, query) } }
         ).awaitAll()
 
         if (outcomes.all { it.isFailure }) {
@@ -117,7 +144,8 @@ object LyricsSearch {
     private fun sourceRank(source: String): Int = when (source) {
         "LRCLIB" -> 0
         "KuGou" -> 1
-        else -> 2
+        "NetEase" -> 2
+        else -> 3
     }
 
     private suspend fun runProvider(
@@ -278,4 +306,37 @@ internal object NetEaseClient {
             null
         }
     }
+}
+
+/** lyrics.ovh: plain-text lyrics looked up by exact artist + title (no timing). */
+internal object LyricsOvhClient {
+    suspend fun search(title: String, artist: String, customQuery: String?): List<OnlineLyricsResult> =
+        withContext(Dispatchers.IO) {
+            if (!customQuery.isNullOrBlank() || !LyricsQuery.isRealArtist(artist)) {
+                return@withContext emptyList<OnlineLyricsResult>()
+            }
+            val cleanTitle = LyricsQuery.cleanTitle(title)
+            val body = try {
+                LyricsHttp.get(
+                    "https://api.lyrics.ovh/v1/${LyricsHttp.encode(artist.trim()).replace("+", "%20")}/" +
+                        LyricsHttp.encode(cleanTitle).replace("+", "%20")
+                )
+            } catch (e: IOException) {
+                return@withContext emptyList<OnlineLyricsResult>()
+            }
+            val text = JSONObject(body).optString("lyrics").trim()
+            if (text.isBlank()) return@withContext emptyList<OnlineLyricsResult>()
+            listOf(
+                OnlineLyricsResult(
+                    id = "ovh:${artist.trim()}:$cleanTitle",
+                    source = "lyrics.ovh",
+                    trackName = cleanTitle,
+                    artistName = artist.trim(),
+                    albumName = "",
+                    durationSec = 0,
+                    plainLyrics = text,
+                    syncedLyrics = null
+                )
+            )
+        }
 }

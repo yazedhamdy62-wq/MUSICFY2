@@ -14,11 +14,13 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.resonance.kmzqpr"
+    applicationId = "com.aistudio.resonance.kmzqpr.v2"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    // CI passes the build number so every release is newer than the last (needed for updates)
+    val ciBuild = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+    versionCode = ciBuild
+    versionName = "1.$ciBuild"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

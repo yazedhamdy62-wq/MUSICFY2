@@ -23,6 +23,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +33,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -111,6 +117,44 @@ fun GlassOverlay(
     val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val closing = remember { booleanArrayOf(false) }
+    // Finger-follow pull-down for bottom sheets
+    val dragY = remember { Animatable(0f) }
+    var panelH by remember { mutableStateOf(0f) }
+    val dragBy: (Float) -> Unit = { d -> scope.launch { dragY.snapTo((dragY.value + d).coerceAtLeast(0f)) } }
+    val settle: () -> Unit = {
+        scope.launch {
+            if (dragY.value > panelH * 0.22f && panelH > 0f && !closing[0]) {
+                closing[0] = true
+                dragY.animateTo(panelH, tween(200, easing = FastOutSlowInEasing))
+                onDismiss()
+            } else {
+                dragY.animateTo(0f, androidx.compose.animation.core.spring(stiffness = 500f))
+            }
+        }
+    }
+    val pullConnection = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                if (dragY.value > 0f && available.y < 0f) {
+                    val used = maxOf(available.y, -dragY.value)
+                    dragBy(used)
+                    return androidx.compose.ui.geometry.Offset(0f, used)
+                }
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+            override fun onPostScroll(consumed: androidx.compose.ui.geometry.Offset, available: androidx.compose.ui.geometry.Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                if (available.y > 0f && source == androidx.compose.ui.input.nestedscroll.NestedScrollSource.UserInput) {
+                    dragBy(available.y)
+                    return androidx.compose.ui.geometry.Offset(0f, available.y)
+                }
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                if (dragY.value > 0f) { settle(); return available }
+                return androidx.compose.ui.unit.Velocity.Zero
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         progress.animateTo(1f, tween(durationMillis = 420, easing = SmoothOut))
@@ -133,7 +177,7 @@ fun GlassOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer { alpha = progress.value }
+                .graphicsLayer { alpha = progress.value * (1f - (dragY.value / (panelH.coerceAtLeast(1f))).coerceIn(0f, 1f)) }
                 .background(Color.Black.copy(alpha = 0.55f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -148,10 +192,17 @@ fun GlassOverlay(
                 modifier = modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .onSizeChanged { panelH = it.height.toFloat() }
                     .graphicsLayer {
-                        translationY = (1f - progress.value) * size.height
+                        translationY = (1f - progress.value) * size.height + dragY.value
                         alpha = (progress.value * 1.6f).coerceIn(0f, 1f)
                     }
+                    .nestedScroll(pullConnection)
+                    .draggable(
+                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                        state = androidx.compose.foundation.gestures.rememberDraggableState { dragBy(it) },
+                        onDragStopped = { settle() }
+                    )
                     .glassPanel(shape)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },

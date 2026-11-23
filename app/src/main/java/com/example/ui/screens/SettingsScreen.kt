@@ -450,6 +450,19 @@ fun SettingsScreen(
                 }
             }
 
+            // UPDATES
+            item {
+                SettingsSectionHeader(title = strings.tr("التحديثات", "Updates", "Mises à jour"), color = ResonanceGreen)
+                com.example.ui.components.UpdatesSection(
+                    strings = strings,
+                    cardBackground = cardBackground,
+                    borderColor = borderColor,
+                    textColor = textColor,
+                    subTextColor = subTextColor
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             // SECTION 3: LANGUAGE (اللغة)
             item {
                 SettingsSectionHeader(title = strings.languageSection, color = ResonanceGreen)

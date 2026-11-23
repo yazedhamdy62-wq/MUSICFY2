@@ -60,30 +60,18 @@ fun AddSongsToPlaylistDialog(
         }
     }
 
-    val isDark = MaterialTheme.colorScheme.background == DarkBackground || MaterialTheme.colorScheme.surface == DarkSurface
-    val dialogBg = if (isDark) Color(0xFF161C22) else Color(0xFFFFFFFF)
-    val cardBg = if (isDark) DarkSurfaceElevated else Color(0xFFF1F5F9)
-    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val subTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-    val borderColor = if (isDark) Color(0xFF26333D) else Color(0xFFE2E8F0)
+    // Liquid-glass panel: light-on-dark content
+    val isDark = true
+    val cardBg = Color.White.copy(alpha = 0.10f)
+    val textColor = Color.White
+    val subTextColor = Color.White.copy(alpha = 0.65f)
+    val borderColor = Color.White.copy(alpha = 0.25f)
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.85f)
-                .clip(RoundedCornerShape(24.dp))
-                .border(BorderStroke(1.2.dp, borderColor), RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            color = dialogBg,
-            tonalElevation = 6.dp
-        ) {
+    com.example.ui.components.GlassOverlay(onDismiss = onDismiss, bottomSheet = false) { close ->
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .height(560.dp)
                     .padding(20.dp)
             ) {
                 // Header
@@ -114,7 +102,7 @@ fun AddSongsToPlaylistDialog(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF222C35) else Color(0xFFE2E8F0))
+                            .background(if (isDark) Color.White.copy(alpha = 0.14f) else Color.White)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
@@ -133,9 +121,12 @@ fun AddSongsToPlaylistDialog(
                     onValueChange = { searchQuery = it },
                     placeholder = {
                         Text(
-                            text = strings.searchByNameArtist,
+                            text = strings.tr("ابحث عن أغنية", "Search songs", "Rechercher"),
                             color = subTextColor,
-                            fontSize = 13.sp
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     },
                     leadingIcon = {
@@ -240,7 +231,7 @@ fun AddSongsToPlaylistDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(if (isSelected) (if (isDark) Color(0xFF1E3228) else Color(0xFFE8F5E9)) else cardBg)
+                                    .background(if (isSelected) ResonanceGreen.copy(alpha = 0.22f) else cardBg)
                                     .border(
                                         BorderStroke(
                                             1.dp,
@@ -311,7 +302,7 @@ fun AddSongsToPlaylistDialog(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedButton(
-                        onClick = onDismiss,
+                        onClick = close,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = textColor),
@@ -334,7 +325,7 @@ fun AddSongsToPlaylistDialog(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ResonanceGreen,
                             contentColor = Color.Black,
-                            disabledContainerColor = if (isDark) Color(0xFF26333D) else Color(0xFFE2E8F0),
+                            disabledContainerColor = Color.White.copy(alpha = 0.12f),
                             disabledContentColor = subTextColor
                         )
                     ) {
@@ -352,6 +343,5 @@ fun AddSongsToPlaylistDialog(
                     }
                 }
             }
-        }
     }
 }

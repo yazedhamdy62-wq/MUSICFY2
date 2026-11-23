@@ -120,12 +120,17 @@ class AudioPlayerController(private val context: Context) {
 
     private val priorityNextQueue = mutableListOf<Song>()
 
-    // Equalizer Bands (-10 to +10 dB)
-    private val _eqBands = MutableStateFlow(listOf(2, 4, 1, 3, 5))
-    val eqBands: StateFlow<List<Int>> = _eqBands.asStateFlow()
+    // Real equalizer + effects (applied to the MediaPlayer audio session)
+    val effects = AudioEffectsManager(context)
+    val eqBands: StateFlow<List<Int>> get() = effects.bands
+    val activePreset: StateFlow<String> get() = effects.activeProfile
 
-    private val _activePreset = MutableStateFlow("Vocal & Bass")
-    val activePreset: StateFlow<String> = _activePreset.asStateFlow()
+    // Playback speed (0.5x..2x). Applied after start() because setting a non-zero speed on a
+    // paused MediaPlayer would start it.
+    private val _playbackSpeed = MutableStateFlow(
+        context.getSharedPreferences("musicfy_eq", Context.MODE_PRIVATE).getFloat("speed", 1f)
+    )
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
 
     // Hardware Media Player for real device tracks
     private var mediaPlayer: MediaPlayer? = null
@@ -253,7 +258,7 @@ class AudioPlayerController(private val context: Context) {
                     // PERF: this loop runs on the Main thread every second. Rebuilding the
                     // notification + widget (and decoding cover bitmaps) every second caused
                     // visible scroll jank, so we only do it every 5 seconds. The notification
-                    // scrubber extrapolates the position by itself (playback speed = 1.0).
+                    // scrubber extrapolates the position using the current playback speed.
                     tickCount++
                     if (tickCount % 5 == 0) {
                         preferencesManager.saveLastPosition(_currentPositionSec.value)
@@ -280,7 +285,8 @@ class AudioPlayerController(private val context: Context) {
                 contentUri = song.contentUri,
                 durationMs = durMs,
                 positionMs = posMs,
-                isLiked = song.isLiked
+                isLiked = song.isLiked,
+                speed = _playbackSpeed.value
             )
         } catch (_: Exception) { }
 
@@ -321,11 +327,13 @@ class AudioPlayerController(private val context: Context) {
                     )
                     setDataSource(context, uri)
                     prepare()
+                    effects.attach(this)
                     if (startPositionSec > 0) {
                         val targetMs = (startPositionSec * 1000).coerceIn(0, duration.coerceAtLeast(1))
                         seekTo(targetMs)
                     }
                     start()
+                    applySpeedTo(this)
                     setOnCompletionListener {
                         if (_isRepeat.value) {
                             seekTo(0)
@@ -452,7 +460,7 @@ class AudioPlayerController(private val context: Context) {
         val mp = mediaPlayer
         if (mp != null) {
             try {
-                mp.start()
+                mp.start(); applySpeedTo(mp)
             } catch (_: Exception) {
                 initAndStartMediaPlayer(_currentPositionSec.value)
             }
@@ -699,24 +707,25 @@ class AudioPlayerController(private val context: Context) {
         _sleepTimerSeconds.value = rem
     }
 
-    fun updateEqBand(index: Int, value: Int) {
-        val current = _eqBands.value.toMutableList()
-        if (index in current.indices) {
-            current[index] = value.coerceIn(-10, 10)
-            _eqBands.value = current
-            _activePreset.value = "Custom"
-        }
+    fun updateEqBand(index: Int, value: Int) = effects.setBand(index, value)
+
+    fun applyPreset(presetName: String) = effects.selectProfile(presetName)
+
+    fun setPlaybackSpeed(speed: Float) {
+        val v = speed.coerceIn(0.5f, 2f)
+        _playbackSpeed.value = v
+        context.getSharedPreferences("musicfy_eq", Context.MODE_PRIVATE).edit().putFloat("speed", v).apply()
+        val mp = mediaPlayer ?: return
+        try { if (mp.isPlaying) applySpeedTo(mp) } catch (_: Exception) { }
+        updateForegroundService()
     }
 
-    fun applyPreset(presetName: String) {
-        _activePreset.value = presetName
-        when (presetName) {
-            "Bass Boost" -> _eqBands.value = listOf(8, 6, 2, 0, -2)
-            "Vocal & Bass" -> _eqBands.value = listOf(4, 5, 2, 4, 6)
-            "Rock" -> _eqBands.value = listOf(5, 3, -1, 3, 6)
-            "Electronic" -> _eqBands.value = listOf(7, 5, 0, 4, 7)
-            "Flat" -> _eqBands.value = listOf(0, 0, 0, 0, 0)
-        }
+    private fun applySpeedTo(mp: MediaPlayer) {
+        try {
+            val params = mp.playbackParams
+            params.speed = _playbackSpeed.value
+            mp.playbackParams = params
+        } catch (_: Exception) { }
     }
 
     private fun startAudioTone() {
@@ -783,6 +792,7 @@ class AudioPlayerController(private val context: Context) {
     }
 
     private fun releaseMediaPlayer() {
+        effects.release()
         try {
             mediaPlayer?.stop()
             mediaPlayer?.release()

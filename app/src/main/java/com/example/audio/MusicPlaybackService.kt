@@ -105,6 +105,7 @@ class MusicPlaybackService : Service() {
         val durationMs = intent?.getLongExtra(EXTRA_DURATION_MS, 0L) ?: 0L
         val positionMs = intent?.getLongExtra(EXTRA_POSITION_MS, 0L) ?: 0L
         val isLiked = intent?.getBooleanExtra(EXTRA_IS_LIKED, false) ?: false
+        val speed = intent?.getFloatExtra(EXTRA_SPEED, 1f) ?: 1f
 
         val albumArtBitmap = loadArtworkBitmap(artUriStr, trackUriStr)
 
@@ -134,7 +135,7 @@ class MusicPlaybackService : Service() {
                     PlaybackStateCompat.ACTION_STOP or
                     PlaybackStateCompat.ACTION_SEEK_TO
                 )
-                .setState(state, positionMs, if (isPlaying) 1.0f else 0.0f)
+                .setState(state, positionMs, if (isPlaying) speed else 0.0f)
                 .build()
         )
 
@@ -275,6 +276,7 @@ class MusicPlaybackService : Service() {
         const val EXTRA_DURATION_MS = "extra_duration_ms"
         const val EXTRA_POSITION_MS = "extra_position_ms"
         const val EXTRA_IS_LIKED = "extra_is_liked"
+        const val EXTRA_SPEED = "extra_speed"
 
         const val ACTION_TOGGLE = "com.example.action.TOGGLE"
         const val ACTION_PLAY = "com.example.action.PLAY"
@@ -293,7 +295,8 @@ class MusicPlaybackService : Service() {
             contentUri: String? = null,
             durationMs: Long = 0L,
             positionMs: Long = 0L,
-            isLiked: Boolean = false
+            isLiked: Boolean = false,
+            speed: Float = 1f
         ) {
             val intent = Intent(context, MusicPlaybackService::class.java).apply {
                 putExtra(EXTRA_SONG_TITLE, title)
@@ -304,6 +307,7 @@ class MusicPlaybackService : Service() {
                 putExtra(EXTRA_DURATION_MS, durationMs)
                 putExtra(EXTRA_POSITION_MS, positionMs)
                 putExtra(EXTRA_IS_LIKED, isLiked)
+                putExtra(EXTRA_SPEED, speed)
             }
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

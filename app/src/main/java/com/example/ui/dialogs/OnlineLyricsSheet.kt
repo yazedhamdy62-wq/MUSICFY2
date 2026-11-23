@@ -74,7 +74,8 @@ fun OnlineLyricsSheet(
     strings: AppStrings,
     onSelect: (String) -> Unit,
     onOpenBrowser: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    previewResults: List<OnlineLyricsResult>? = null // for design previews only
 ) {
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
@@ -87,6 +88,12 @@ fun OnlineLyricsSheet(
     }
 
     LaunchedEffect(title, artist, reloadKey, activeQuery) {
+        if (previewResults != null) {
+            results = previewResults
+            selectedId = previewResults.firstOrNull()?.id
+            isLoading = false
+            return@LaunchedEffect
+        }
         isLoading = true
         hasError = false
         try {
@@ -108,18 +115,13 @@ fun OnlineLyricsSheet(
         reloadKey += 1
     }
 
-    val sheetBg = if (isDark) Color(0xFF14191F) else Color.White
-    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
-    val subColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-    val borderColor = if (isDark) Color(0xFF26333D) else Color(0xFFE2E8F0)
+    // Liquid-glass panel: always light-on-dark text, like the other glass sheets
+    val textColor = Color.White
+    val subColor = Color.White.copy(alpha = 0.65f)
+    val borderColor = Color.White.copy(alpha = 0.28f)
     val selectedResult = results.firstOrNull { it.id == selectedId }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = sheetBg,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
+    com.example.ui.components.GlassOverlay(onDismiss = onDismiss, bottomSheet = true) { _ ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
