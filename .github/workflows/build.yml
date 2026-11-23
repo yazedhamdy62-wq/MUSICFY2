@@ -30,21 +30,27 @@ jobs:
         with:
           gradle-version: 9.3.1
 
-      # The project expects a release keystore (alias "upload") that only exists on your PC.
-      # Here we generate a throwaway key so GitHub can sign a test APK.
-      - name: Create test signing key
-        run: >
-          keytool -genkeypair -v
-          -keystore "$GITHUB_WORKSPACE/ci-key.jks"
-          -alias upload -keyalg RSA -keysize 2048 -validity 10000
-          -storepass android -keypass android
-          -dname "CN=Musicfy, O=Musicfy, C=EG"
+      # Release signing uses ONE permanent key stored in GitHub Actions secrets. If the secrets
+      # are missing the build stops: it never falls back to a temporary key, because that would
+      # produce an APK that cannot update the installed app.
+      - name: Restore release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "Release signing secrets are missing. Refusing to build with a temporary key." >&2
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
       - name: Build release APK
         env:
-          KEYSTORE_PATH: ${{ github.workspace }}/ci-key.jks
-          STORE_PASSWORD: android
-          KEY_PASSWORD: android
+          KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          VERSION_CODE: ${{ github.run_number }}
         run: gradle assembleRelease --no-daemon
 
       - uses: actions/upload-artifact@v4
