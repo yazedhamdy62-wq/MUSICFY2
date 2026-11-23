@@ -518,63 +518,14 @@ fun LibraryScreen(
         )
     }
 
-    // Create Playlist Dialog
+    // Create Playlist Dialog (liquid glass)
     if (showCreateDialog) {
-        AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
-            containerColor = if (isDark) Color(0xFF192027) else Color.White,
-            title = {
-                Text(
-                    text = strings.createPlaylistTitle,
-                    color = textColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-            },
-            text = {
-                Column {
-                    Text(
-                        text = strings.playlistNameLabel,
-                        color = textSubColor,
-                        fontSize = 13.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = newPlaylistName,
-                        onValueChange = { newPlaylistName = it },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ResonanceGreen,
-                            unfocusedBorderColor = borderColor,
-                            focusedTextColor = textColor,
-                            unfocusedTextColor = textColor
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val name = newPlaylistName.trim().ifEmpty { strings.newPlaylistFallback }
-                        onCreateNewPlaylist(name)
-                        showCreateDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ResonanceGreen,
-                        contentColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(strings.saveBtn, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) {
-                    Text(strings.cancelBtn, color = textSubColor)
-                }
-            }
+        com.example.ui.dialogs.CreatePlaylistDialog(
+            strings = strings,
+            name = newPlaylistName,
+            onNameChange = { newPlaylistName = it },
+            onCreate = { onCreateNewPlaylist(it) },
+            onDismiss = { showCreateDialog = false }
         )
     }
 }
