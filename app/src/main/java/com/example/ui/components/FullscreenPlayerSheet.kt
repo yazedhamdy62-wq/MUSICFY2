@@ -16,6 +16,10 @@ import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.ui.draw.drawBehind
 import kotlin.math.roundToInt
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.geometry.Offset
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.lerp
@@ -92,6 +96,8 @@ fun FullscreenPlayerSheet(
     onToggleRepeat: () -> Unit,
     onToggleLike: () -> Unit,
     onOpenSleepTimer: () -> Unit,
+    playbackSpeed: Float = 1f,
+    onOpenSpeed: () -> Unit = {},
     onOpenQueue: () -> Unit,
     onOpenOptions: () -> Unit = {},
     onUpdateLyrics: (String) -> Unit = {},
@@ -156,9 +162,53 @@ fun FullscreenPlayerSheet(
     // Light version of the song colour used for icons, times and the sliders
     val tone = lerp(coverAccent, Color.White, 0.62f)
 
+    // Pull-down to close: the sheet follows the finger, then either closes or springs back
+    val dragY = remember { androidx.compose.animation.core.Animatable(0f) }
+    val dragScope = rememberCoroutineScope()
+    var panelHeightPx by remember { mutableStateOf(0f) }
+    val dragBy: (Float) -> Unit = { d ->
+        dragScope.launch { dragY.snapTo((dragY.value + d).coerceAtLeast(0f)) }
+    }
+    val settleDrag: () -> Unit = {
+        dragScope.launch {
+            if (dragY.value > panelHeightPx * 0.18f && panelHeightPx > 0f) {
+                dragY.animateTo(panelHeightPx, tween(180))
+                onCollapse()
+            } else {
+                dragY.animateTo(0f, androidx.compose.animation.core.spring(stiffness = 500f))
+            }
+        }
+    }
+    // Lets a scrolling list inside (lyrics) hand the pull-down to the sheet once it is at the top
+    val pullConnection = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): Offset {
+                if (dragY.value > 0f && available.y < 0f) {
+                    val used = maxOf(available.y, -dragY.value)
+                    dragBy(used)
+                    return Offset(0f, used)
+                }
+                return Offset.Zero
+            }
+            override fun onPostScroll(consumed: Offset, available: Offset, source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): Offset {
+                if (available.y > 0f && source == androidx.compose.ui.input.nestedscroll.NestedScrollSource.UserInput) {
+                    dragBy(available.y)
+                    return Offset(0f, available.y)
+                }
+                return Offset.Zero
+            }
+            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                if (dragY.value > 0f) { settleDrag(); return available }
+                return androidx.compose.ui.unit.Velocity.Zero
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
+            .onSizeChanged { panelHeightPx = it.height.toFloat() }
+            .graphicsLayer { translationY = dragY.value }
             .background(playerBackgroundBrush)
             .clickable(
                 interactionSource = playerClickBlocker,
@@ -189,15 +239,12 @@ fun FullscreenPlayerSheet(
                     .background(if (isDark) Color.White.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.22f))
                     .clickable(onClick = onCollapse)
                     .pointerInput(Unit) {
-                        var totalDragY = 0f
                         detectVerticalDragGestures(
-                            onDragStart = { totalDragY = 0f },
+                            onDragEnd = { settleDrag() },
+                            onDragCancel = { settleDrag() },
                             onVerticalDrag = { change, dragAmount ->
-                                totalDragY += dragAmount
-                                if (totalDragY > 20f) {
-                                    change.consume()
-                                    onCollapse()
-                                }
+                                change.consume()
+                                dragBy(dragAmount)
                             }
                         )
                     }
@@ -213,15 +260,12 @@ fun FullscreenPlayerSheet(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
                     .pointerInput(Unit) {
-                        var totalDragY = 0f
                         detectVerticalDragGestures(
-                            onDragStart = { totalDragY = 0f },
+                            onDragEnd = { settleDrag() },
+                            onDragCancel = { settleDrag() },
                             onVerticalDrag = { change, dragAmount ->
-                                totalDragY += dragAmount
-                                if (totalDragY > 25f) {
-                                    change.consume()
-                                    onCollapse()
-                                }
+                                change.consume()
+                                dragBy(dragAmount)
                             }
                         )
                     }
@@ -242,6 +286,7 @@ fun FullscreenPlayerSheet(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .nestedScroll(pullConnection)
                     .pointerInput(playerMode) {
                         var totalDragX = 0f
                         var totalDragY = 0f
@@ -254,13 +299,16 @@ fun FullscreenPlayerSheet(
                                 totalDragX += dragAmount.x
                                 totalDragY += dragAmount.y
 
-                                // If user drags DOWN from top to bottom
-                                if (totalDragY > 45f && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.2f) {
+                                // Vertical pull: the whole sheet follows the finger
+                                if (kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.2f &&
+                                    (totalDragY > 0f || dragY.value > 0f)) {
                                     change.consume()
-                                    onCollapse()
+                                    dragBy(dragAmount.y)
                                 }
                             },
+                            onDragCancel = { settleDrag() },
                             onDragEnd = {
+                                if (dragY.value > 0f) settleDrag()
                                 val threshold = 60f
                                 if (kotlin.math.abs(totalDragX) > kotlin.math.abs(totalDragY) * 1.3f) {
                                     if (totalDragX < -threshold) {
@@ -605,6 +653,23 @@ fun FullscreenPlayerSheet(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(26.dp))
+                            .clickable(onClick = onOpenSpeed)
+                            .padding(horizontal = 10.dp)
+                            .testTag("fullscreen_speed_btn"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = (if (playbackSpeed % 1f == 0f) playbackSpeed.toInt().toString() else playbackSpeed.toString().trimEnd('0')) + "x",
+                            color = if (playbackSpeed != 1f) Color.White else tone,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     IconButton(
