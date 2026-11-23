@@ -128,6 +128,8 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     var previousScreen by remember { mutableStateOf<Screen?>(null) }
     var isPlayerExpanded by remember { mutableStateOf(false) }
+    var showSpeedSheet by remember { mutableStateOf(false) }
+    val speedNow by audioPlayer.playbackSpeed.collectAsStateWithLifecycle()
 
     var showEqualizer by remember { mutableStateOf(false) }
     var showSleepTimer by remember { mutableStateOf(false) }
@@ -168,6 +170,18 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
         AppThemeMode.DARK -> true
         AppThemeMode.LIGHT -> false
         AppThemeMode.SYSTEM -> isSystemDark
+    }
+
+    // System bars follow the app theme (not the phone's), and stay light-on-dark over the player
+    val barView = androidx.compose.ui.platform.LocalView.current
+    SideEffect {
+        val w = (barView.context as? android.app.Activity)?.window
+        if (w != null) {
+            val c = androidx.core.view.WindowCompat.getInsetsController(w, barView)
+            val darkBars = isDarkTheme || isPlayerExpanded
+            c.isAppearanceLightStatusBars = !darkBars
+            c.isAppearanceLightNavigationBars = !isDarkTheme
+        }
     }
 
     val strings = remember(playerSettings.language) {
@@ -803,6 +817,8 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                             }
                         },
                         onOpenSleepTimer = { showSleepTimer = true },
+                        playbackSpeed = speedNow,
+                        onOpenSpeed = { showSpeedSheet = true },
                         onOpenQueue = { showQueueSheet = true },
                         onOpenOptions = {
                             songForOptions = currentSong
@@ -963,15 +979,19 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
 
                 // Equalizer Dialog
                 if (showEqualizer) {
-                    val eqBands by audioPlayer.eqBands.collectAsStateWithLifecycle()
-                    val activePreset by audioPlayer.activePreset.collectAsStateWithLifecycle()
                     EqualizerDialog(
                         strings = strings,
-                        bands = eqBands,
-                        activePreset = activePreset,
-                        onBandChange = { idx, valDb -> audioPlayer.updateEqBand(idx, valDb) },
-                        onPresetSelect = { preset -> audioPlayer.applyPreset(preset) },
+                        fx = audioPlayer.effects,
                         onDismiss = { showEqualizer = false }
+                    )
+                }
+
+                if (showSpeedSheet) {
+                    com.example.ui.dialogs.SpeedSheet(
+                        strings = strings,
+                        speed = speedNow,
+                        onSelect = { audioPlayer.setPlaybackSpeed(it) },
+                        onDismiss = { showSpeedSheet = false }
                     )
                 }
 
