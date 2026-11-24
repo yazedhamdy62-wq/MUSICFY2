@@ -221,17 +221,23 @@ private object GlassFx {
         val sdk = Build.VERSION.SDK_INT
         if (sdk < Build.VERSION_CODES.S) return null
 
-        var effect: AndroidRenderEffect? = null
-        if (blurPx > 0f) {
-            effect = blurEffect(blurPx)
+        // Some drivers reject runtime-shader/chain effects; fall back to plain tinted glass
+        // instead of crashing the whole overlay.
+        return try {
+            var effect: AndroidRenderEffect? = null
+            if (blurPx > 0f) {
+                effect = blurEffect(blurPx)
+            }
+            if (sdk >= Build.VERSION_CODES.TIRAMISU && refractionHeightPx > 0f && refractionAmountPx > 0f) {
+                effect = lensEffect(
+                    shaders, widthPx, heightPx, padPx, radiusPx,
+                    refractionHeightPx, refractionAmountPx, chromatic, effect
+                )
+            }
+            effect?.let { toCompose(it) }
+        } catch (e: Exception) {
+            null
         }
-        if (sdk >= Build.VERSION_CODES.TIRAMISU && refractionHeightPx > 0f && refractionAmountPx > 0f) {
-            effect = lensEffect(
-                shaders, widthPx, heightPx, padPx, radiusPx,
-                refractionHeightPx, refractionAmountPx, chromatic, effect
-            )
-        }
-        return effect?.let { toCompose(it) }
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
