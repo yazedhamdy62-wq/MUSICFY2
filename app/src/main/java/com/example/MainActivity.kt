@@ -39,6 +39,7 @@ import com.example.data.*
 import com.example.data.local.LocalMusicRepository
 import com.example.data.local.PreferencesManager
 import com.example.data.local.refreshedCurrentSong
+import com.example.data.local.resolveRestoredQueue
 import com.example.ui.components.FloatingBottomNavBar
 import com.example.ui.components.LocalGlassBackdrop
 import com.example.ui.components.glassSource
@@ -226,6 +227,18 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                     song = allFilteredSongs.first(),
                     queue = allFilteredSongs,
                     positionSec = 0
+                )
+            }
+        } else if (audioPlayer.isQueueRestorePending()) {
+            // Startup left only a one-song stub as the queue. Rebuild the saved queue (library or
+            // playlist order) and refresh the song with its stored metadata (lyrics, cover).
+            val stub = audioPlayer.currentSong.value
+            val song = allFilteredSongs.find { it.id == stub.id }
+            if (song != null) {
+                val savedState = preferencesManager.loadPlaybackState()
+                audioPlayer.completeQueueRestore(
+                    song = song,
+                    queue = resolveRestoredQueue(savedState.queueSongIds, song, allFilteredSongs)
                 )
             }
         } else {
