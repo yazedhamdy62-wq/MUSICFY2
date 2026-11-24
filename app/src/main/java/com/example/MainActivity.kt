@@ -196,6 +196,8 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
         android.Manifest.permission.READ_EXTERNAL_STORAGE
     }
 
+    val startupSongRefreshed = remember { mutableStateOf(false) }
+
     fun restoreOrInitPlayback(allFilteredSongs: List<Song>) {
         if (allFilteredSongs.isEmpty()) return
         if (audioPlayer.currentSong.value.id == "none" || audioPlayer.currentSong.value.id == "empty_state") {
@@ -231,10 +233,15 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
             // The player restores a bare stub of the last song from preferences at startup (no
             // lyrics, custom title or cover). Refresh it with the stored metadata, otherwise the
             // saved lyrics look lost after reopening the app.
-            refreshedCurrentSong(audioPlayer.currentSong.value, allFilteredSongs)?.let {
-                audioPlayer.updateCurrentSongData(it)
+            // Only once at startup: a later rescan can read the database before a fresh edit is
+            // written and must not overwrite what the user just saved.
+            if (!startupSongRefreshed.value) {
+                refreshedCurrentSong(audioPlayer.currentSong.value, allFilteredSongs)?.let {
+                    audioPlayer.updateCurrentSongData(it)
+                }
             }
         }
+        startupSongRefreshed.value = true
     }
 
     fun scanFilesInternal(isManual: Boolean = false) {
