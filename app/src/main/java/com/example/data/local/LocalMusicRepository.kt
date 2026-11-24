@@ -185,6 +185,7 @@ fun refreshedCurrentSong(current: Song, library: List<Song>): Song? {
  */
 fun resolveRestoredQueue(savedIds: List<String>, current: Song, library: List<Song>): List<Song> {
     val byId = library.associateBy { it.id }
-    val found = savedIds.mapNotNull { byId[it] }
+    // The current song keeps its saved position even if it is no longer in the library.
+    val found = savedIds.mapNotNull { if (it == current.id) current else byId[it] }
     return if (found.any { it.id == current.id }) found else listOf(current) + found
 }
