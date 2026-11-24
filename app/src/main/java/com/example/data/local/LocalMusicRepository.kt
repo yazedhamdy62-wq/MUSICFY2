@@ -176,3 +176,16 @@ fun refreshedCurrentSong(current: Song, library: List<Song>): Song? {
     val match = library.find { it.id == current.id } ?: return null
     return if (match != current) match else null
 }
+
+/**
+ * Rebuilds the playback queue saved before the app closed, in its saved order. Ids that are no
+ * longer in the library are skipped. The current song is always part of the queue. When fewer than
+ * two saved songs resolve, the whole library is used, so "next" still moves on instead of repeating.
+ */
+fun resolveRestoredQueue(savedIds: List<String>, current: Song, library: List<Song>): List<Song> {
+    val byId = library.associateBy { it.id }
+    val found = savedIds.mapNotNull { byId[it] }
+    // A saved queue of fewer than two songs cannot "move on"; fall back to the library order
+    if (found.size < 2) return if (library.isEmpty()) listOf(current) else library
+    return if (found.any { it.id == current.id }) found else listOf(current) + found
+}
