@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -38,7 +36,12 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
@@ -177,11 +180,19 @@ fun GlassOverlay(
     // GraphicsLayer every frame, and a glass panel inside that recorded subtree would draw the
     // backdrop picture while it is still recording (re-entrant record/draw), which crashes.
     // A Dialog draws in its own window after the backdrop finished recording.
-    // decorFitsSystemWindows stays true (default): a floating dialog window is laid out between
-    // the system bars and resizes for the IME, so the sheet bottom sits above the nav bar and
-    // the keyboard pushes content up. (A Popup, or a dialog with decorFitsSystemWindows=false,
-    // gets a no-limits window positioned under the status bar with insets zeroed out, which
-    // pushed the sheet bottom off the physical screen.)
+    // Dialog windows do not reliably deliver window insets to their content (and on
+    // targetSdk 35+ the window is forced edge-to-edge), so in-dialog navigationBarsPadding can be
+    // zero and the sheet bottom would sit at the physical screen edge under the gesture bar.
+    // Capture the ACTIVITY window's visible height (status + nav bars excluded) here, in the
+    // activity composition where insets are reliable, and size the dialog content to exactly
+    // that region: the wrap-height floating window then centers over the visible area and the
+    // bottom sheet lands above the navigation bar by construction.
+    val ownerDensity = LocalDensity.current
+    val ownerVisibleHeight = with(ownerDensity) {
+        (LocalConfiguration.current.screenHeightDp * density -
+            WindowInsets.statusBars.getTop(this) -
+            WindowInsets.navigationBars.getBottom(this)).toDp()
+    }
     Dialog(
         onDismissRequest = close,
         properties = DialogProperties(
@@ -193,7 +204,7 @@ fun GlassOverlay(
     // When the keyboard is open the IME consumes the first back gesture to hide itself;
     // otherwise this closes the panel.
     BackHandler(onBack = close)
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxWidth().height(ownerVisibleHeight)) {
         // Dim layer
         Box(
             modifier = Modifier
@@ -230,8 +241,6 @@ fun GlassOverlay(
                         indication = null,
                         onClick = {}
                     )
-                    .imePadding()
-                    .navigationBarsPadding()
             ) {
                 // grab handle
                 Box(
@@ -249,9 +258,6 @@ fun GlassOverlay(
             Column(
                 modifier = modifier
                     .align(Alignment.Center)
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
-                    .imePadding()
                     .padding(horizontal = 24.dp)
                     .fillMaxWidth()
                     .graphicsLayer {
