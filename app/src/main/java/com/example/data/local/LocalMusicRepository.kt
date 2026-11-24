@@ -167,3 +167,12 @@ fun PlaylistEntity.toDomain(): Playlist {
         customImageUri = customImageUri
     )
 }
+
+/**
+ * Returns the library copy of [current] (same id, merged with stored metadata such as lyrics)
+ * when it differs from what the player holds, or null when nothing needs refreshing.
+ */
+fun refreshedCurrentSong(current: Song, library: List<Song>): Song? {
+    val match = library.find { it.id == current.id } ?: return null
+    return if (match != current) match else null
+}
