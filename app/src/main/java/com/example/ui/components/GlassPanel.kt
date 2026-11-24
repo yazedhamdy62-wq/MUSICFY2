@@ -42,6 +42,11 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.window.DialogWindowProvider
+import android.view.Gravity
+import android.view.WindowManager
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
@@ -183,16 +188,21 @@ fun GlassOverlay(
     // Dialog windows do not reliably deliver window insets to their content (and on
     // targetSdk 35+ the window is forced edge-to-edge), so in-dialog navigationBarsPadding can be
     // zero and the sheet bottom would sit at the physical screen edge under the gesture bar.
-    // Capture the ACTIVITY window's visible height (status + nav bars excluded) here, in the
-    // activity composition where insets are reliable, and size the dialog content to exactly
-    // that region: the wrap-height floating window then centers over the visible area and the
-    // bottom sheet lands above the navigation bar by construction.
+    // Capture the ACTIVITY window's metrics here, in the activity composition where insets are
+    // reliable. The dialog content Box is sized to the full physical screen height; the
+    // wrap-height floating window coerces that down to whatever space it actually gets
+    // (visible area, or less when the IME opens). The sheet is bottom-aligned inside it, and
+    // gets a bottom padding equal to the extra space below the visible area (measured on the
+    // Box itself), so the sheet BACKGROUND extends to the physical screen bottom while its
+    // content (footer buttons) stays exactly at the visible-area bottom, above the nav bar.
     val ownerDensity = LocalDensity.current
     val ownerVisibleHeight = with(ownerDensity) {
         (LocalConfiguration.current.screenHeightDp * density -
             WindowInsets.statusBars.getTop(this) -
             WindowInsets.navigationBars.getBottom(this)).toDp()
     }
+    val ownerScreenHeight = LocalConfiguration.current.screenHeightDp.dp
+    var sheetBottomPad by remember { mutableStateOf(0.dp) }
     Dialog(
         onDismissRequest = close,
         properties = DialogProperties(
@@ -204,7 +214,35 @@ fun GlassOverlay(
     // When the keyboard is open the IME consumes the first back gesture to hide itself;
     // otherwise this closes the panel.
     BackHandler(onBack = close)
-    Box(modifier = Modifier.fillMaxWidth().height(ownerVisibleHeight)) {
+    if (bottomSheet) {
+        // Anchor bottom sheets to the physical bottom edge and span the full physical width,
+        // so the sheet visually rises from the screen bottom with no side gaps. The window
+        // height stays wrap-content (coerced to the visible area or shrunk by the IME), and
+        // the sheet's internal bottom padding keeps content above the nav bar.
+        val dialogView = LocalView.current
+        SideEffect {
+            (dialogView.parent as? DialogWindowProvider)?.window?.apply {
+                attributes = attributes.apply {
+                    width = WindowManager.LayoutParams.MATCH_PARENT
+                    height = WindowManager.LayoutParams.WRAP_CONTENT
+                    gravity = Gravity.BOTTOM
+                }
+            }
+        }
+    }
+    // Bottom sheets get the full physical height so their background can extend behind the
+    // gesture bar (padded inside the sheet, see below); centered dialogs keep the visible
+    // height so their position is unchanged.
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(if (bottomSheet) ownerScreenHeight else ownerVisibleHeight)
+            .onSizeChanged {
+                sheetBottomPad = with(ownerDensity) {
+                    (it.height.toDp() - ownerVisibleHeight).coerceAtLeast(0.dp)
+                }
+            }
+    ) {
         // Dim layer
         Box(
             modifier = Modifier
@@ -236,6 +274,11 @@ fun GlassOverlay(
                         onDragStopped = { settle() }
                     )
                     .glassPanel(shape)
+                    // Extends the glass background below the visible area (behind the gesture
+                    // bar) so the sheet visually rises from the physical screen bottom; the
+                    // padding keeps the content above the navigation bar. Zero when the dialog
+                    // window is already confined to the visible area or shrunk by the IME.
+                    .padding(bottom = sheetBottomPad)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
