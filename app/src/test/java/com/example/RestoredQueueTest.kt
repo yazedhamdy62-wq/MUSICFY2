@@ -32,13 +32,13 @@ class RestoredQueueTest {
     }
 
     @Test
-    fun oneSongOrEmptySavedQueueFallsBackToLibrarySoNextMovesOn() {
-        assertEquals(library.map { it.id }, resolveRestoredQueue(listOf("device_3"), library[2], library).map { it.id })
-        assertEquals(library.map { it.id }, resolveRestoredQueue(emptyList(), library[0], library).map { it.id })
+    fun oneSongQueueStaysOneSongAndNothingIsAddedFromLibrary() {
+        assertEquals(listOf("device_3"), resolveRestoredQueue(listOf("device_3"), library[2], library).map { it.id })
+        assertEquals(listOf("device_1"), resolveRestoredQueue(emptyList(), library[0], library).map { it.id })
     }
 
     @Test
     fun emptyLibraryKeepsCurrentSong() {
-        assertEquals(listOf("device_1"), resolveRestoredQueue(emptyList(), library[0], emptyList()).map { it.id })
+        assertEquals(listOf("device_1"), resolveRestoredQueue(listOf("device_9"), library[0], emptyList()).map { it.id })
     }
 }
