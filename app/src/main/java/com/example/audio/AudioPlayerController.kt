@@ -17,6 +17,7 @@ import android.os.PowerManager
 import com.example.data.MusicRepository
 import com.example.data.Song
 import com.example.data.local.PreferencesManager
+import com.example.data.local.resolveRestoredQueue
 import com.example.widget.MusicAppWidgetProvider
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -163,19 +164,23 @@ class AudioPlayerController(private val context: Context) {
     fun isQueueRestorePending(): Boolean = queueRestorePending
 
     /**
-     * Replaces the startup stub with the real queue and the library copy of the song. Playback,
-     * position, shuffle and repeat are left as they are, so it is safe even if play was pressed
-     * before the library finished loading.
+     * Replaces the startup stub with the saved queue (same songs, same order, as saved) and the
+     * library copy of the current song. Call it once the library is loaded. Nothing else changes:
+     * playback, position, shuffle and repeat stay as they are. If the current song is no longer in
+     * the library the stub stays as the current song, and the saved queue is still restored, so
+     * nothing is lost and saving resumes. Returns true when the restore ran.
      */
-    fun completeQueueRestore(song: Song, queue: List<Song>) {
-        if (!queueRestorePending) return
+    fun restoreQueueFromLibrary(library: List<Song>): Boolean {
+        if (!queueRestorePending || library.isEmpty()) return false
+        val stub = _currentSong.value
+        val song = library.find { it.id == stub.id } ?: stub
+        val savedIds = preferencesManager.loadPlaybackState().queueSongIds
         queueRestorePending = false
-        playlistQueue = if (queue.isEmpty()) listOf(song) else queue
-        if (_currentSong.value.id == song.id) {
-            _currentSong.value = song
-        }
+        playlistQueue = resolveRestoredQueue(savedIds, song, library)
+        _currentSong.value = song
         persistState()
         updateForegroundService()
+        return true
     }
 
     fun persistState() {
