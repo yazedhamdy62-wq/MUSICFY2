@@ -38,8 +38,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 
 /**
@@ -172,16 +173,24 @@ fun GlassOverlay(
         }
     }
 
-    BackHandler(onBack = close)
-
-    // Render in a Popup window, NOT inline: the backdrop records the whole screen into a
+    // Render in a Dialog window, NOT inline: the backdrop records the whole screen into a
     // GraphicsLayer every frame, and a glass panel inside that recorded subtree would draw the
     // backdrop picture while it is still recording (re-entrant record/draw), which crashes.
-    // A Popup draws in its own window after the backdrop finished recording.
-    Popup(
+    // A Dialog draws in its own window after the backdrop finished recording.
+    // (A Dialog, not a Popup: popup windows do not resize for the IME and report no window
+    // insets, so the keyboard covered dialogs and navigationBarsPadding did nothing.)
+    Dialog(
         onDismissRequest = close,
-        properties = PopupProperties(focusable = true, usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
     ) {
+    // When the keyboard is open the IME consumes the first back gesture to hide itself;
+    // otherwise this closes the panel.
+    BackHandler(onBack = close)
     Box(modifier = Modifier.fillMaxSize()) {
         // Dim layer
         Box(
@@ -219,6 +228,7 @@ fun GlassOverlay(
                         indication = null,
                         onClick = {}
                     )
+                    .imePadding()
                     .navigationBarsPadding()
             ) {
                 // grab handle
@@ -239,6 +249,7 @@ fun GlassOverlay(
                     .align(Alignment.Center)
                     .statusBarsPadding()
                     .navigationBarsPadding()
+                    .imePadding()
                     .padding(horizontal = 24.dp)
                     .fillMaxWidth()
                     .graphicsLayer {
