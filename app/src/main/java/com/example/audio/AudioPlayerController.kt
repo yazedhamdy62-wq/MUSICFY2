@@ -152,7 +152,34 @@ class AudioPlayerController(private val context: Context) {
         }
     }
 
+    /**
+     * True while the player only holds the bare last-song stub restored at startup. The saved queue
+     * in preferences is still the real one, so persisting now would overwrite it with a
+     * one-song queue. Cleared once the real queue is restored or the user starts a song.
+     */
+    @Volatile
+    private var queueRestorePending = false
+
+    fun isQueueRestorePending(): Boolean = queueRestorePending
+
+    /**
+     * Replaces the startup stub with the real queue and the library copy of the song. Playback,
+     * position, shuffle and repeat are left as they are, so it is safe even if play was pressed
+     * before the library finished loading.
+     */
+    fun completeQueueRestore(song: Song, queue: List<Song>) {
+        if (!queueRestorePending) return
+        queueRestorePending = false
+        playlistQueue = if (queue.isEmpty()) listOf(song) else queue
+        if (_currentSong.value.id == song.id) {
+            _currentSong.value = song
+        }
+        persistState()
+        updateForegroundService()
+    }
+
     fun persistState() {
+        if (queueRestorePending) return
         try {
             val song = _currentSong.value
             if (song.id != "none" && song.id != "empty_state") {
@@ -191,6 +218,8 @@ class AudioPlayerController(private val context: Context) {
                 isShuffle = savedState.isShuffle,
                 isRepeat = savedState.isRepeat
             )
+            // The real queue is rebuilt from the saved ids once the library is scanned.
+            queueRestorePending = true
         }
     }
 
@@ -201,6 +230,7 @@ class AudioPlayerController(private val context: Context) {
         isShuffle: Boolean = false,
         isRepeat: Boolean = false
     ) {
+        queueRestorePending = false
         _currentSong.value = song
         if (queue.isNotEmpty()) {
             playlistQueue = queue
@@ -427,6 +457,7 @@ class AudioPlayerController(private val context: Context) {
         }
         registerNoisyReceiver()
 
+        queueRestorePending = false
         _currentSong.value = song
         _currentPositionSec.value = 0
         _isPlaying.value = true
