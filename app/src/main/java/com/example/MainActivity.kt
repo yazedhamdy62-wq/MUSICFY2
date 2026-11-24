@@ -228,6 +228,10 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
                     positionSec = 0
                 )
             }
+        } else if (audioPlayer.isQueueRestorePending()) {
+            // Startup left only a one-song stub as the queue. Rebuild the saved queue (library or
+            // playlist order) and refresh the song with its stored metadata (lyrics, cover).
+            audioPlayer.restoreQueueFromLibrary(allFilteredSongs)
         } else {
             audioPlayer.setQueue(allFilteredSongs)
             // The player restores a bare stub of the last song from preferences at startup (no

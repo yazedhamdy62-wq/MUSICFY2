@@ -17,6 +17,7 @@ import android.os.PowerManager
 import com.example.data.MusicRepository
 import com.example.data.Song
 import com.example.data.local.PreferencesManager
+import com.example.data.local.resolveRestoredQueue
 import com.example.widget.MusicAppWidgetProvider
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -152,7 +153,38 @@ class AudioPlayerController(private val context: Context) {
         }
     }
 
+    /**
+     * True while the player only holds the bare last-song stub restored at startup. The saved queue
+     * in preferences is still the real one, so persisting now would overwrite it with a
+     * one-song queue. Cleared once the real queue is restored or the user starts a song.
+     */
+    @Volatile
+    private var queueRestorePending = false
+
+    fun isQueueRestorePending(): Boolean = queueRestorePending
+
+    /**
+     * Replaces the startup stub with the saved queue (same songs, same order, as saved) and the
+     * library copy of the current song. Call it once the library is loaded. Nothing else changes:
+     * playback, position, shuffle and repeat stay as they are. If the current song is no longer in
+     * the library the stub stays as the current song, and the saved queue is still restored, so
+     * nothing is lost and saving resumes. Returns true when the restore ran.
+     */
+    fun restoreQueueFromLibrary(library: List<Song>): Boolean {
+        if (!queueRestorePending || library.isEmpty()) return false
+        val stub = _currentSong.value
+        val song = library.find { it.id == stub.id } ?: stub
+        val savedIds = preferencesManager.loadPlaybackState().queueSongIds
+        queueRestorePending = false
+        playlistQueue = resolveRestoredQueue(savedIds, song, library)
+        _currentSong.value = song
+        persistState()
+        updateForegroundService()
+        return true
+    }
+
     fun persistState() {
+        if (queueRestorePending) return
         try {
             val song = _currentSong.value
             if (song.id != "none" && song.id != "empty_state") {
@@ -191,6 +223,8 @@ class AudioPlayerController(private val context: Context) {
                 isShuffle = savedState.isShuffle,
                 isRepeat = savedState.isRepeat
             )
+            // The real queue is rebuilt from the saved ids once the library is scanned.
+            queueRestorePending = true
         }
     }
 
@@ -201,6 +235,7 @@ class AudioPlayerController(private val context: Context) {
         isShuffle: Boolean = false,
         isRepeat: Boolean = false
     ) {
+        queueRestorePending = false
         _currentSong.value = song
         if (queue.isNotEmpty()) {
             playlistQueue = queue
@@ -427,6 +462,7 @@ class AudioPlayerController(private val context: Context) {
         }
         registerNoisyReceiver()
 
+        queueRestorePending = false
         _currentSong.value = song
         _currentPositionSec.value = 0
         _isPlaying.value = true
