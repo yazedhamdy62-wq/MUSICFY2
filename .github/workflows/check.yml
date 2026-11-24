@@ -23,4 +23,4 @@ jobs:
         with:
           gradle-version: 9.3.1
       - name: Compile and run regression test
-        run: gradle :app:testDebugUnitTest --tests 'com.example.RestoredSongLyricsTest' --tests 'com.example.RestoredQueueTest' --no-daemon
+        run: gradle :app:testDebugUnitTest --tests 'com.example.RestoredSongLyricsTest' --tests 'com.example.RestoredQueueTest' --tests 'com.example.QueueRestoreLifecycleTest' --no-daemon
