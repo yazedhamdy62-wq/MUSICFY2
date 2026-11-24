@@ -177,13 +177,15 @@ fun GlassOverlay(
     // GraphicsLayer every frame, and a glass panel inside that recorded subtree would draw the
     // backdrop picture while it is still recording (re-entrant record/draw), which crashes.
     // A Dialog draws in its own window after the backdrop finished recording.
-    // (A Dialog, not a Popup: popup windows do not resize for the IME and report no window
-    // insets, so the keyboard covered dialogs and navigationBarsPadding did nothing.)
+    // decorFitsSystemWindows stays true (default): a floating dialog window is laid out between
+    // the system bars and resizes for the IME, so the sheet bottom sits above the nav bar and
+    // the keyboard pushes content up. (A Popup, or a dialog with decorFitsSystemWindows=false,
+    // gets a no-limits window positioned under the status bar with insets zeroed out, which
+    // pushed the sheet bottom off the physical screen.)
     Dialog(
         onDismissRequest = close,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false,
             dismissOnBackPress = false,
             dismissOnClickOutside = false
         )
