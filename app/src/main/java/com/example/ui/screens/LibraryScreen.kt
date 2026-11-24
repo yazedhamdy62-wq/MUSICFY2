@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.ui.components.GlassOverlay
 import androidx.compose.ui.unit.sp
 import com.example.data.AppStrings
 import com.example.data.CoverArtType
@@ -288,134 +289,82 @@ fun LibraryScreen(
             findPlaylistFirstSong(targetPlaylist, allSongs)
         }
 
-        ModalBottomSheet(
-            onDismissRequest = { selectedPlaylistForOptions = null },
-            containerColor = if (isDark) Color(0xFF14191F) else Color.White,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
+        // Same liquid-glass overlay as the song options sheet: edge-to-edge, drag down to dismiss.
+        GlassOverlay(
+            onDismiss = { selectedPlaylistForOptions = null },
+            bottomSheet = true,
+            modifier = Modifier.testTag("playlist_options_bottom_sheet")
+        ) { close ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header preview
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (isDark) Color(0xFF1E2833) else Color(0xFFF1F5F9))
-                        .padding(12.dp),
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White.copy(alpha = 0.10f))
+                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PlaylistArtwork(
                         playlist = targetPlaylist,
                         firstSong = targetFirstSong,
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(44.dp)
                             .clip(RoundedCornerShape(10.dp))
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = targetPlaylist.title,
-                            color = textColor,
+                            color = Color.White,
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "${targetPlaylist.songCount} ${strings.songsCountSuffix}",
-                            color = textSubColor,
+                            color = Color.White.copy(alpha = 0.62f),
                             fontSize = 12.sp
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Options Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Option: Rename
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(if (isDark) Color(0xFF1C242C) else Color(0xFFF8FAFC))
-                            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
-                            .clickable {
-                                renameInput = targetPlaylist.title
-                                playlistToRename = targetPlaylist
-                                selectedPlaylistForOptions = null
-                            }
-                            .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    PlaylistGlassOptionTile(
+                        title = strings.renamePlaylist,
+                        icon = Icons.Outlined.Edit,
+                        danger = false,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFBBF24).copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Edit,
-                                contentDescription = null,
-                                tint = Color(0xFFFBBF24),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = strings.renamePlaylist,
-                            color = textColor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        renameInput = targetPlaylist.title
+                        playlistToRename = targetPlaylist
+                        close()
                     }
-
-                    // Option: Delete
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(if (isDark) Color(0xFF1C242C) else Color(0xFFF8FAFC))
-                            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(14.dp))
-                            .clickable {
-                                playlistToDelete = targetPlaylist
-                                selectedPlaylistForOptions = null
-                            }
-                            .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    PlaylistGlassOptionTile(
+                        title = strings.deletePlaylist,
+                        icon = Icons.Outlined.Delete,
+                        danger = true,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFF87171).copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = null,
-                                tint = Color(0xFFF87171),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = strings.deletePlaylist,
-                            color = textColor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        playlistToDelete = targetPlaylist
+                        close()
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
@@ -722,6 +671,46 @@ private fun PlaylistItemGridCard(
             color = subTextColor,
             fontSize = 12.sp,
             maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun PlaylistGlassOptionTile(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    danger: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(18.dp)
+    val contentColor = if (danger) Color(0xFFFF8A80) else Color.White
+    Column(
+        modifier = modifier
+            .height(78.dp)
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.10f))
+            .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = contentColor,
+            modifier = Modifier.size(26.dp)
+        )
+        Spacer(modifier = Modifier.height(7.dp))
+        Text(
+            text = title,
+            color = contentColor,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }
