@@ -32,6 +32,13 @@ class RestoredQueueTest {
     }
 
     @Test
+    fun currentSongMissingFromLibraryKeepsItsSavedPosition() {
+        val gone = song(9)
+        val q = resolveRestoredQueue(listOf("device_4", "device_9", "device_2"), gone, library)
+        assertEquals(listOf("device_4", "device_9", "device_2"), q.map { it.id })
+    }
+
+    @Test
     fun oneSongQueueStaysOneSongAndNothingIsAddedFromLibrary() {
         assertEquals(listOf("device_3"), resolveRestoredQueue(listOf("device_3"), library[2], library).map { it.id })
         assertEquals(listOf("device_1"), resolveRestoredQueue(emptyList(), library[0], library).map { it.id })
