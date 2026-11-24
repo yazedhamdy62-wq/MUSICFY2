@@ -38,6 +38,7 @@ import com.example.audio.PlaybackBridge
 import com.example.data.*
 import com.example.data.local.LocalMusicRepository
 import com.example.data.local.PreferencesManager
+import com.example.data.local.refreshedCurrentSong
 import com.example.ui.components.FloatingBottomNavBar
 import com.example.ui.components.LocalGlassBackdrop
 import com.example.ui.components.glassSource
@@ -227,6 +228,12 @@ fun MusicfyApp(audioPlayer: AudioPlayerController) {
             }
         } else {
             audioPlayer.setQueue(allFilteredSongs)
+            // The player restores a bare stub of the last song from preferences at startup (no
+            // lyrics, custom title or cover). Refresh it with the stored metadata, otherwise the
+            // saved lyrics look lost after reopening the app.
+            refreshedCurrentSong(audioPlayer.currentSong.value, allFilteredSongs)?.let {
+                audioPlayer.updateCurrentSongData(it)
+            }
         }
     }
 
