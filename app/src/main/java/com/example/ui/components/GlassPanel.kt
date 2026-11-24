@@ -38,6 +38,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.launch
 
 /**
@@ -172,6 +174,14 @@ fun GlassOverlay(
 
     BackHandler(onBack = close)
 
+    // Render in a Popup window, NOT inline: the backdrop records the whole screen into a
+    // GraphicsLayer every frame, and a glass panel inside that recorded subtree would draw the
+    // backdrop picture while it is still recording (re-entrant record/draw), which crashes.
+    // A Popup draws in its own window after the backdrop finished recording.
+    Popup(
+        onDismissRequest = close,
+        properties = PopupProperties(focusable = true, usePlatformDefaultWidth = false)
+    ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Dim layer
         Box(
@@ -248,6 +258,7 @@ fun GlassOverlay(
                 content(close)
             }
         }
+    }
     }
 }
 
